@@ -1,0 +1,98 @@
+---
+name: demo
+description: Interactive demo of RikyuAgent — walks through facility info, live cluster status, docs search, filesystem access, and job submission on the RIKEN AI4S supercomputer. User-invocable with /demo.
+---
+
+# RikyuAgent demo
+
+Run each step in order. Present results as a readable narrative — not raw JSON dumps. Use markdown headers and tables to make it scannable. Pause after each step and show output before moving on.
+
+---
+
+## Step 1 — Facility overview
+
+Call `get_facility`. Present the key facts as a short table:
+- Hardware: GPU model, CPU architecture, node count
+- Partitions: name → GPUs/node, CPUs/node, max wall time (one row per partition)
+- Storage tiers (home, scratch, any project storage)
+
+Lead with one sentence: **"The AI4S supercomputer at RIKEN is an NVIDIA GB200 cluster running <N> nodes."**
+
+---
+
+## Step 2 — Live cluster status
+
+Call `get_resources`. For each partition, show a mini utilization bar:
+
+```
+1n1gpu  ████████░░  80/100 nodes busy
+1n2gpu  ███░░░░░░░  30/100 idle
+...
+```
+
+(Use █ for allocated, ░ for idle, scaled to ~10 chars. Add the idle count in plain text.)
+
+Point out which partitions have the most idle nodes right now — that's where a job would start fastest.
+
+---
+
+## Step 3 — Documentation search
+
+Call `search_docs("how do I load software modules and run a GPU job")`.
+
+Present the top result as a pull-quote with its source URL. Then say: *"The docs index covers <N> sections — use /ai4s-reference or ask me anything about the cluster."*
+
+---
+
+## Step 4 — Filesystem
+
+Call `fs_ls(".")` to list the user's home directory.
+
+Show the listing cleanly (skip the raw `ls -l` flags noise — just names, sizes, dates). Highlight anything interesting: existing job scripts in `.rikyu/jobs/`, scratch symlinks, project directories.
+
+---
+
+## Step 5 — Recent jobs
+
+Call `get_job_statuses([])` (empty list = last 2 days).
+
+If there are jobs, show them as a table: job ID | name | state | partition | elapsed. Highlight any FAILED jobs and offer to investigate.
+
+If there are no recent jobs, say so and move straight to Step 6.
+
+---
+
+## Step 6 — Test job
+
+Tell the user: *"Let's submit a quick 5-minute test job to verify end-to-end submission and output."*
+
+Submit via `submit_job` with this spec:
+```json
+{
+  "name": "rikyu-demo",
+  "executable": "hostname && echo '---' && nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader",
+  "resources": {"node_count": 1, "gpus_per_node": 1, "processes_per_node": 1},
+  "attributes": {"duration": 300, "queue_name": "1n1gpu"}
+}
+```
+
+Show the user the rendered job ID and script path. Then call `get_job_status(<job_id>)` immediately and report the initial state + queue reason if present.
+
+---
+
+## Step 7 — Monitor and read output
+
+Poll `get_job_status` once every ~15 seconds (use `run_command_on_cluster("sleep 15")` as the wait). Stop when state is `completed` or `failed` (or after 5 polls — tell the user to check back with `get_job_status` if it's still queued).
+
+Once completed, call `fs_tail(<workdir>/slurm-<job_id>.out)` and show the output. It should contain the node hostname and GPU info — confirm the GPU model matches what `get_facility` reported.
+
+---
+
+## Closing
+
+Summarize what just happened in 3 bullet points:
+- Facility and status checked (live data)
+- Docs searched (RAG hit on AI4S docs)
+- Job submitted, ran, output retrieved
+
+Then say: *"From here you can submit real workloads with /submitting-jobs, monitor them with /monitoring-jobs, or ask anything about the cluster."*
