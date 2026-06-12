@@ -36,15 +36,7 @@ Point out which partitions have the most idle nodes right now — that's where a
 
 ---
 
-## Step 3 — Documentation search
-
-Call `search_docs("how do I load software modules and run a GPU job")`.
-
-Present the top result as a pull-quote with its source URL. Then say: *"The docs index covers <N> sections — use /ai4s-reference or ask me anything about the cluster."*
-
----
-
-## Step 4 — Filesystem
+## Step 3 — Filesystem
 
 Call `fs_ls(".")` to list the user's home directory.
 
@@ -52,7 +44,7 @@ Show the listing cleanly (skip the raw `ls -l` flags noise — just names, sizes
 
 ---
 
-## Step 5 — Recent jobs
+## Step 4 — Recent jobs
 
 Call `get_job_statuses([])` (empty list = last 2 days).
 
@@ -62,7 +54,7 @@ If there are no recent jobs, say so and move straight to Step 6.
 
 ---
 
-## Step 6 — Test job
+## Step 5 — Test job
 
 Tell the user: *"Let's submit a quick 5-minute test job to verify end-to-end submission and output."*
 
@@ -80,7 +72,7 @@ Show the user the rendered job ID and script path. Then call `get_job_status(<jo
 
 ---
 
-## Step 7 — Monitor and read output
+## Step 6 — Monitor and read output
 
 Poll `get_job_status` once every ~15 seconds (use `run_command_on_cluster("sleep 15")` as the wait). Stop when state is `completed` or `failed` (or after 5 polls — tell the user to check back with `get_job_status` if it's still queued).
 
@@ -91,8 +83,8 @@ Once completed, call `fs_tail(<workdir>/slurm-<job_id>.out)` and show the output
 ## Closing
 
 Summarize what just happened in 3 bullet points:
-- Facility and status checked (live data)
-- Docs searched (RAG hit on AI4S docs)
+- Facility and live cluster status checked
+- Filesystem explored, recent job history shown
 - Job submitted, ran, output retrieved
 
 Then say: *"From here you can submit real workloads with /submitting-jobs, monitor them with /monitoring-jobs, or ask anything about the cluster."*
