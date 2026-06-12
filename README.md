@@ -21,7 +21,33 @@ Coverage: [IRI_CHECKLIST.md](IRI_CHECKLIST.md).
 `search_docs`, `list_doc_sections`, `read_doc_section`
 — BM25 for now; vector search activates once `RIKYU_EMBED_BASE_URL` (+ `RIKYU_EMBED_MODEL`) point at an OpenAI-compatible embeddings endpoint.
 
-**Skills**: `submitting-jobs`, `monitoring-jobs`, `ai4s-reference`.
+**Skills**: `configuring`, `submitting-jobs`, `monitoring-jobs`, `ai4s-reference`.
+
+## Configuration
+
+Settings live in `~/.rikyu/config.json` — ask the agent to set it up (the
+`configuring` skill guides it), or write it yourself:
+
+```json
+{
+  "ssh": {"host": "rikyu"},
+  "embedding": {
+    "base_url": "https://your-serving-host/v1",
+    "api_key": "...",
+    "model": "your-embedding-model"
+  }
+}
+```
+
+`ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth).
+`embedding` points at any OpenAI-compatible `/v1/embeddings` endpoint; leave
+it out to use BM25 keyword search. Env vars `RIKYU_HOST`,
+`RIKYU_EMBED_BASE_URL`, `RIKYU_EMBED_API_KEY`, `RIKYU_EMBED_MODEL` override
+the file. Validate everything with:
+
+```bash
+server/run.sh rikyu_mcp.doctor
+```
 
 ## Layout
 

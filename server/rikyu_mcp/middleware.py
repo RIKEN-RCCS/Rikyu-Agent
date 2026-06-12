@@ -29,7 +29,7 @@ def get_frontend() -> Computer:
     """The (cached) Computer targeting the AI4S login node."""
     return Computer(
         template="#!/bin/bash -l",
-        host=config.HOST,
+        host=config.ssh_host(),
         submitter="bash",
         python="python3",
     )
