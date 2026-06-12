@@ -1,0 +1,14 @@
+{
+  "name": "rikyu-marketplace",
+  "owner": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "plugins": [
+    {
+      "name": "rikyu",
+      "source": "./",
+      "description": "Slurm job management and documentation search for the RIKEN AI4S supercomputer."
+    }
+  ]
+}
