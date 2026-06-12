@@ -11,7 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 from rikyu_mcp import compute, config
 from rikyu_mcp.middleware import run_command, write_remote_file
-from rikyu_mcp.models import JobSpec, JobStatus
+from rikyu_mcp.models import Job, JobSpec
 from rikyu_mcp.serving import serve
 
 mcp = FastMCP("rikyu-hpc")
@@ -86,7 +86,7 @@ def submit_job(spec: JobSpec, resource_id: str = RESOURCE_ID) -> dict:
 
 
 @mcp.tool()
-def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> JobStatus:
+def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> Job:
     """Get the normalized status of one job. (IRI: GET /compute/status/...)
 
     state is the normalized IRI state (QUEUED/ACTIVE/COMPLETED/FAILED/
@@ -95,14 +95,14 @@ def get_job_status(job_id: str, resource_id: str = RESOURCE_ID) -> JobStatus:
     with fs_tail or fs_view.
     """
     _check_resource(resource_id)
-    statuses = compute.get_statuses([job_id])
-    if not statuses:
+    jobs = compute.get_statuses([job_id])
+    if not jobs:
         raise ValueError(f"Job {job_id} not found")
-    return statuses[0]
+    return jobs[0]
 
 
 @mcp.tool()
-def get_job_statuses(job_ids: list[str], resource_id: str = RESOURCE_ID) -> list[JobStatus]:
+def get_job_statuses(job_ids: list[str], resource_id: str = RESOURCE_ID) -> list[Job]:
     """Get statuses for several jobs at once, or recent jobs when job_ids is
     empty. (IRI: POST /compute/status/{resource_id})
     """
@@ -114,7 +114,7 @@ def get_job_statuses(job_ids: list[str], resource_id: str = RESOURCE_ID) -> list
 
 
 @mcp.tool()
-def cancel_job(job_id: str, resource_id: str = RESOURCE_ID) -> JobStatus | str:
+def cancel_job(job_id: str, resource_id: str = RESOURCE_ID) -> Job | str:
     """Cancel a queued or running job and report its resulting state.
     (IRI: DELETE /compute/cancel/{resource_id}/{job_id})
     """

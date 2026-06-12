@@ -1,7 +1,7 @@
 """Data models mirroring the IRI Facility API schemas.
 
 The IRI (Integrated Research Infrastructure) Facility API is the DOE
-standard for programmatic facility access (see api.pdf / api.alcf.anl.gov).
+standard for programmatic facility access (see openapi.json / api.alcf.anl.gov).
 Its compute schemas follow PSI/J: a JobSpec with ResourceSpec + JobAttributes,
 and a normalized JobState. We implement a pragmatic subset; deviations are
 noted in IRI_CHECKLIST.md at the repository root.
@@ -13,19 +13,21 @@ from pydantic import BaseModel, Field
 
 class JobState(str, Enum):
     """Normalized job states (IRI/PSI-J), mapped from Slurm native states."""
-    QUEUED = "QUEUED"
-    ACTIVE = "ACTIVE"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-    CANCELED = "CANCELED"
-    UNKNOWN = "UNKNOWN"
+    NEW = "new"
+    QUEUED = "queued"
+    HELD = "held"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELED = "canceled"
+    UNKNOWN = "unknown"
 
 
 _SLURM_STATE_MAP = {
     "PENDING": JobState.QUEUED,
     "CONFIGURING": JobState.QUEUED,
     "REQUEUED": JobState.QUEUED,
-    "SUSPENDED": JobState.QUEUED,
+    "SUSPENDED": JobState.HELD,
     "RUNNING": JobState.ACTIVE,
     "COMPLETING": JobState.ACTIVE,
     "STAGE_OUT": JobState.ACTIVE,
@@ -47,54 +49,74 @@ def map_slurm_state(native: str) -> JobState:
 
 
 class ResourceSpec(BaseModel):
-    """Resources for a job (PSI/J ResourceSpec subset).
+    """Resources for a job (PSI/J ResourceSpec + AI4S extensions).
 
     On AI4S the partition (JobAttributes.queue_name) fixes the per-node
-    share; gpus_per_node is an AI4S-specific addition that maps to
-    --gpus-per-node and must not exceed the partition's share.
+    resource share. gpus_per_node is an AI4S-specific extension that maps to
+    --gpus-per-node; gpu_cores_per_process is the PSI/J standard equivalent.
+    If both are set, gpus_per_node takes precedence.
     """
     node_count: int = 1
+    process_count: int | None = Field(None, description="Total processes (alternative to processes_per_node × node_count)")
     processes_per_node: int = 1
     cpu_cores_per_process: int | None = None
-    gpus_per_node: int = 1
+    gpu_cores_per_process: int | None = Field(None, description="PSI/J standard GPU field; prefer gpus_per_node on AI4S")
+    gpus_per_node: int = Field(1, description="AI4S extension: maps to --gpus-per-node")
+    exclusive_node_use: bool = Field(False, description="Request exclusive node allocation (--exclusive)")
+    memory: int | None = Field(None, description="Memory per node in bytes (maps to --mem)")
 
 
 class JobAttributes(BaseModel):
-    """Scheduler attributes (PSI/J JobAttributes subset)."""
-    duration: str = Field("01:00:00", description="Wall time, HH:MM:SS or D-HH:MM:SS")
+    """Scheduler attributes (IRI/PSI/J JobAttributes subset)."""
+    duration: int | str = Field(
+        3600,
+        description="Wall time as integer seconds or HH:MM:SS / D-HH:MM:SS string",
+    )
     queue_name: str = Field("1n1gpu", description="Slurm partition")
-    project_name: str | None = Field(None, description="Slurm account (not needed on AI4S)")
+    account: str | None = Field(None, description="Slurm account to charge")
+    reservation_id: str | None = Field(None, description="Slurm reservation name (--reservation)")
     custom_attributes: dict[str, str] = Field(default_factory=dict)
 
 
 class JobSpec(BaseModel):
-    """Job specification (PSI/J JobSpec subset).
+    """Job specification (IRI/PSI/J JobSpec subset).
 
-    `executable` plus `arguments` form the command run inside the batch
-    script; `executable` may be a shell line (e.g. 'module load nvhpc && srun ./app').
+    executable plus arguments form the command run inside the batch script;
+    executable may be a shell line (e.g. 'module load nvhpc && srun ./app').
+    launcher, if set, is prepended to executable (e.g. 'srun').
+    pre_launch / post_launch are script lines inserted before / after.
     """
     name: str = "rikyu-job"
     executable: str
     arguments: list[str] = Field(default_factory=list)
     directory: str | None = Field(None, description="Working directory for the job")
     environment: dict[str, str] = Field(default_factory=dict)
+    inherit_environment: bool = Field(True, description="Inherit submission environment variables")
+    stdin_path: str | None = Field(None, description="Path to use as stdin (--input)")
     stdout_path: str | None = None
     stderr_path: str | None = None
     resources: ResourceSpec = Field(default_factory=ResourceSpec)
     attributes: JobAttributes = Field(default_factory=JobAttributes)
+    pre_launch: str | None = Field(None, description="Script lines to insert before executable")
+    post_launch: str | None = Field(None, description="Script lines to insert after executable")
+    launcher: str | None = Field(None, description="Launcher prefix, e.g. 'srun' or 'mpirun -np 4'")
 
 
 class JobStatus(BaseModel):
-    """Status record for one job (IRI JobStatus subset)."""
-    job_id: str
+    """IRI-compliant job status (state + time + message + exit_code + meta_data).
+
+    Slurm-specific detail (native_state, partition, nodes, workdir, elapsed,
+    start/end times, queue reason) is carried in meta_data.
+    """
     state: JobState
-    native_state: str
-    name: str = ""
-    partition: str = ""
-    elapsed: str = ""
-    start_time: str = ""
-    end_time: str = ""
-    exit_code: str = ""
-    nodes: str = ""
-    workdir: str = ""
-    reason: str = Field("", description="Why a queued job is waiting (from squeue)")
+    time: float | None = Field(None, description="Epoch seconds: end_time if finished, start_time if running")
+    message: str | None = Field(None, description="Human-readable status (queue reason, error, etc.)")
+    exit_code: int | None = None
+    meta_data: dict | None = Field(None, description="Slurm-specific fields: native_state, partition, nodes, workdir, elapsed, etc.")
+
+
+class Job(BaseModel):
+    """IRI Job: identifier + current status + originating spec."""
+    id: str
+    status: JobStatus | None = None
+    job_spec: JobSpec | None = None

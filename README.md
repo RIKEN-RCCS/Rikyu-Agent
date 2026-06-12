@@ -2,7 +2,7 @@
 
 Claude Code plugin for the RIKEN AI4S supercomputer. Two MCP servers + skills.
 The HPC tool surface follows the [IRI Facility API](https://api.alcf.anl.gov/)
-(`api.pdf`), executed on the cluster over SSH via remotemanager.
+(`openapi.json`), executed on the cluster over SSH via remotemanager.
 Coverage: [IRI_CHECKLIST.md](IRI_CHECKLIST.md).
 
 ## Tools

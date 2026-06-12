@@ -7,7 +7,7 @@ See README.md for the user-facing overview.
 ## Design rules (read before changing code)
 
 - **The `rikyu-hpc` tool surface mirrors the IRI Facility API** (DOE standard;
-  Swagger capture in `api.pdf`). Before adding, renaming, or removing a tool,
+  spec in `openapi.json`). Before adding, renaming, or removing a tool,
   check `IRI_CHECKLIST.md` — new tools should map to an IRI endpoint and the
   checklist must be updated. Extensions with no IRI counterpart (like
   `run_command_on_cluster`) are allowed but must be marked as such.
@@ -71,7 +71,7 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
 .claude-plugin/        plugin + marketplace manifests
 .mcp.json              server launch config (via server/run.sh, auto-venv)
 IRI_CHECKLIST.md       API coverage tracker — keep in sync with hpc_server.py
-api.pdf                IRI Facility API reference (ALCF Swagger capture)
+openapi.json           IRI Facility API spec (live from api.alcf.anl.gov/openapi.json)
 server/rikyu_mcp/
   middleware.py        SSH layer — the only place that talks to the cluster
   models.py            PSI/J-style schemas + Slurm state normalization

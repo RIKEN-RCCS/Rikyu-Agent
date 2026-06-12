@@ -1,7 +1,7 @@
 # IRI Facility API coverage checklist
 
 Tracks how far `rikyu-hpc` covers the [IRI Facility API](https://api.alcf.anl.gov/)
-(ALCF implementation, captured in `api.pdf`). Each IRI endpoint maps to an MCP
+(ALCF implementation, spec at `openapi.json`). Each IRI endpoint maps to an MCP
 tool executed on AI4S over SSH via remotemanager — there is no REST service;
 we emulate the API's shape and semantics.
 
@@ -31,18 +31,21 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
 | GET /account/capabilities | — | ❌ | No equivalent concept exposed on AI4S |
+| GET /account/capabilities/{id} | — | ❌ | Same |
 | GET /account/projects | — | 🔜 | Map from `sacctmgr show associations user=$USER` (account `ea`) |
 | GET /account/projects/{id} | — | 🔜 | Same source |
-| GET .../project_allocations | — | ❌ | AI4S early access has no allocation accounting (`saldo`-like) yet |
+| GET .../project_allocations | — | ❌ | AI4S early access has no allocation accounting yet |
+| GET .../project_allocations/{id} | — | ❌ | Same |
 | GET .../user_allocations | — | ❌ | Same |
+| GET .../user_allocations/{id} | — | ❌ | Same |
 
 ## compute
 
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
-| POST /compute/job/{resource_id} | `submit_job` | ✅ | JobSpec → sbatch script (kept in `~/.rikyu/jobs/`); single SSH round trip |
-| PUT /compute/job/{rid}/{job_id} | — | 🔜 | Map to `scontrol update job` (time limit, name); only valid pre-start for most fields |
-| GET /compute/status/{rid}/{job_id} | `get_job_status` | ✅ | sacct + squeue Reason, normalized JobState |
+| POST /compute/job/{resource_id} | `submit_job` | ✅ | JobSpec → sbatch script (kept in `~/.rikyu/jobs/`); returns `{job_id, script_path}` — see deviation note below |
+| PUT /compute/job/{rid}/{job_id} | — | 🔜 | Map to `scontrol update job`; only valid pre-start for most fields |
+| GET /compute/status/{rid}/{job_id} | `get_job_status` | ✅ | Returns our `JobStatus` directly — see deviation note below |
 | POST /compute/status/{rid} | `get_job_statuses` | ✅ | Batch; empty list = current user's last 2 days |
 | DELETE /compute/cancel/{rid}/{job_id} | `cancel_job` | ✅ | scancel + post-cancel state report |
 
@@ -52,16 +55,17 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 |---|---|---|---|
 | GET /filesystem/ls | `fs_ls` | ✅ | |
 | GET /filesystem/stat | `fs_stat` | ✅ | |
+| GET /filesystem/file | — | 🔜 | IRI generic file read; our `fs_view` covers this use-case; add as alias |
 | GET /filesystem/view | `fs_view` | ✅ | 200KB cap; text only |
 | GET /filesystem/head | `fs_head` | ✅ | |
 | GET /filesystem/tail | `fs_tail` | ✅ | Primary way to read job output |
 | POST /filesystem/mkdir | `fs_mkdir` | ✅ | |
-| POST /filesystem/upload | `fs_upload` | ✅ | Text content via MCP (no multipart); binary deferred |
-| GET /filesystem/download | — | ❌ | Binary transfer doesn't fit MCP text content; revisit via remotemanager file transfer if needed |
+| POST /filesystem/upload | `fs_upload` | ✅ | Text content via MCP (IRI uses multipart; binary deferred) |
+| GET /filesystem/download | — | ❌ | Binary transfer doesn't fit MCP text content |
 | GET /filesystem/checksum | — | 🔜 | Trivial (`sha256sum`) |
 | POST /filesystem/mv | — | 🔜 | Destructive-ish; add with confirmation guidance in skill |
 | POST /filesystem/cp | — | 🔜 | Same |
-| DELETE /filesystem/rm | — | ❌ | Deliberately omitted for now (destructive); agent can use the escape hatch with user confirmation |
+| DELETE /filesystem/rm | — | ❌ | Deliberately omitted (destructive); agent can use escape hatch with user confirmation |
 | PUT /filesystem/chmod | — | ❌ | Low value for agent workflows |
 | PUT /filesystem/chown | — | ❌ | Not permitted for normal users anyway |
 | POST /filesystem/symlink | — | ❌ | Low value |
@@ -72,18 +76,82 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
-| GET /task/{task_id} | — | ❌ | IRI's async-task model exists because REST ops are queued; our SSH execution is synchronous, so there are no tasks to track. Revisit only if we add long-running server-side operations |
+| GET /task/{task_id} | — | ❌ | IRI's async-task model queues REST ops; our SSH execution is synchronous, so `submit_job` returns `job_id` directly (see deviation). Revisit only if we add long-running server-side operations |
 | DELETE /task/{task_id} | — | ❌ | Same |
 | GET /task | — | ❌ | Same |
 
+---
+
 ## Known deviations from the IRI/PSI-J schemas
 
-- Schema fields were not expandable in the Swagger capture (`api.pdf`); our
-  `JobSpec`/`ResourceSpec`/`JobAttributes`/`JobState` follow the PSI/J models
-  the IRI compute API is built on. **Verify against `/openapi.json` when
-  network access to api.alcf.anl.gov is available.**
-- `ResourceSpec.gpus_per_node` is an AI4S-specific addition (maps to
-  `--gpus-per-node`; PSI/J expresses GPUs as `gpu_cores_per_process`).
-- `resource_id` is accepted (and validated) but there is a single resource, `ai4s`.
-- `run_command_on_cluster` is an extension tool with no IRI counterpart.
-- No auth layer: identity comes from the user's SSH key, not OAuth tokens.
+Verified against `openapi.json` (fetched 2026-06-12 from api.alcf.anl.gov).
+
+### JobAttributes
+
+| Field | IRI | Ours | Action |
+|---|---|---|---|
+| `duration` | **integer seconds** | HH:MM:SS string | 🔜 Accept both; convert string→seconds before rendering sbatch, accept int as-is |
+| `account` | `account` | `project_name` | 🔜 Rename field to `account` |
+| `reservation_id` | present | absent | 🔜 Add; maps to `--reservation` sbatch flag |
+
+### ResourceSpec
+
+| Field | IRI | Ours | Action |
+|---|---|---|---|
+| `node_count` | present | present ✅ | — |
+| `processes_per_node` | present | present ✅ | — |
+| `process_count` | present (total processes) | absent | 🔜 Add; alternative to `processes_per_node × node_count` |
+| `cpu_cores_per_process` | present | present ✅ | — |
+| `gpu_cores_per_process` | present (PSI/J standard) | absent | 🔜 Add as alias/fallback; AI4S uses `gpus_per_node` |
+| `gpus_per_node` | absent (AI4S extension) | present | Keep — maps to `--gpus-per-node`; document as extension |
+| `exclusive_node_use` | present | absent | 🔜 Add; maps to `--exclusive` |
+| `memory` | present (bytes) | absent | 🔜 Add; maps to `--mem` (convert bytes → MB for sbatch) |
+
+### JobSpec
+
+| Field | IRI | Ours | Action |
+|---|---|---|---|
+| `executable` | present | present ✅ | — |
+| `arguments` | present | present ✅ | — |
+| `directory` | present | present ✅ | — |
+| `name` | present | present ✅ | — |
+| `environment` | present | present ✅ | — |
+| `stdout_path` | present | present ✅ | — |
+| `stderr_path` | present | present ✅ | — |
+| `resources` | present | present ✅ | — |
+| `attributes` | present | present ✅ | — |
+| `inherit_environment` | present | absent | 🔜 Add; default true for sbatch |
+| `stdin_path` | present | absent | 🔜 Add; maps to `--input` |
+| `pre_launch` | present (script before job) | absent | 🔜 Add; prepend to sbatch script body |
+| `post_launch` | present (script after job) | absent | 🔜 Add; append to sbatch script body |
+| `launcher` | present (e.g. `srun`, `mpirun`) | absent | 🔜 Add; prepend to `executable` in script |
+| `container` | present (Container: image + mounts) | absent | ❌ Defer — requires Apptainer/Singularity on AI4S; verify availability first |
+
+### JobState
+
+IRI values are **lowercase**: `new`, `queued`, `held`, `active`, `completed`, `failed`, `canceled`.
+Ours are uppercase: `QUEUED`, `ACTIVE`, `COMPLETED`, `FAILED`, `CANCELED`, `UNKNOWN`.
+🔜 Align to lowercase. Also add `new` (job submitted, not yet queued) and `held` states.
+
+### JobStatus / Job response shape
+
+IRI's `JobStatus` schema: `{state, time (epoch float), message, exit_code, meta_data}`.
+IRI's `Job` schema (returned by getJob/getJobs): `{id, status: JobStatus, job_spec: JobSpec-Output}`.
+
+Ours returns a flat `JobStatus` with richer Slurm fields (`native_state`, `name`, `partition`,
+`elapsed`, `start_time`, `end_time`, `nodes`, `workdir`, `reason`).
+
+🔜 Align response shape: return `Job` wrapper from `get_job_status`/`get_job_statuses`. Map our
+rich fields into `meta_data`. Use epoch float for `time` (use `start_time` or `end_time`).
+
+### submit_job return value
+
+IRI returns `TaskSubmitResponse {task_id, task_uri}` because ALCF queues REST operations
+as async tasks. Our SSH execution is synchronous — sbatch completes before we return —
+so we return `{job_id, script_path}` directly. No task polling needed.
+
+This is an intentional deviation. Document it clearly to callers.
+
+### resource_id
+
+Accepted and validated in all compute/filesystem tools but there is a single resource: `ai4s`.
