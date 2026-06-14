@@ -92,6 +92,50 @@ def _resource_detail(include_drain: bool = False) -> dict:
     return resource
 
 
+# === account =================================================================
+
+def _parse_projects(output: str) -> list[dict]:
+    # Default sacctmgr column order (--parsable2, no --format):
+    # Cluster|Account|User|Partition|Share|Priority|...(12 more)...|QOS|Def QOS|GrpTRESRunMins
+    projects = []
+    for line in output.strip().splitlines():
+        parts = line.split("|")
+        if len(parts) < 18 or parts[0] == "Cluster":
+            continue
+        projects.append({
+            "id": parts[1],       # Account name — used as JobAttributes.account
+            "cluster": parts[0],
+            "user": parts[2],
+            "qos": parts[17] or None,
+        })
+    return projects
+
+
+@mcp.tool()
+def get_projects() -> list[dict]:
+    """List projects (Slurm accounts) the current user belongs to.
+    (IRI: GET /account/projects)
+
+    Each project has an id (account name) used in JobAttributes.account.
+    """
+    output = run_command(
+        "sacctmgr show associations user=$USER --parsable2 --noheader"
+    )
+    return _parse_projects(output)
+
+
+@mcp.tool()
+def get_project(project_id: str) -> dict:
+    """Get details for a single project (Slurm account).
+    (IRI: GET /account/projects/{id})
+    """
+    projects = get_projects()
+    for p in projects:
+        if p["id"] == project_id:
+            return p
+    raise ValueError(f"Project '{project_id}' not found for current user")
+
+
 # === compute =================================================================
 
 @mcp.tool()

@@ -51,6 +51,10 @@ async def hpc_checks(submit: bool) -> None:
             await call(session, "get_facility")
             await call(session, "get_resources")
             await call(session, "get_resource", {"resource_id": "ai4s"})
+            projects_text = await call(session, "get_projects")
+            assert projects_text.strip(), "get_projects returned empty"
+            first_project = json.loads(projects_text.strip().split("\n\n")[0])
+            await call(session, "get_project", {"project_id": first_project["id"]})
             await call(session, "get_job_statuses", {"job_ids": []})
 
             # filesystem utilities

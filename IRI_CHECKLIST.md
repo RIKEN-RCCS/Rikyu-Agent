@@ -32,8 +32,8 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 |---|---|---|---|
 | GET /account/capabilities | — | ❌ | No equivalent concept exposed on AI4S |
 | GET /account/capabilities/{id} | — | ❌ | Same |
-| GET /account/projects | — | 🔜 | Map from `sacctmgr show associations user=$USER` (account `ea`) |
-| GET /account/projects/{id} | — | 🔜 | Same source |
+| GET /account/projects | `get_projects` | ✅ | `sacctmgr show associations user=$USER` |
+| GET /account/projects/{id} | `get_project` | ✅ | Filter over `get_projects` |
 | GET .../project_allocations | — | ❌ | AI4S early access has no allocation accounting yet |
 | GET .../project_allocations/{id} | — | ❌ | Same |
 | GET .../user_allocations | — | ❌ | Same |
