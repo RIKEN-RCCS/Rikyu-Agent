@@ -36,18 +36,3 @@ Ask the agent to configure it (`configuring` skill), or validate manually:
 ```bash
 server/run.sh rikyu_mcp.doctor
 ```
-
-## Development
-
-The tool surface follows the [IRI Facility API](https://api.alcf.anl.gov/) (`openapi.json`), executed over SSH via remotemanager. Coverage and deviations are tracked in [IRI_CHECKLIST.md](IRI_CHECKLIST.md).
-
-```bash
-# test live (from server/)
-.venv/bin/python tests/smoke.py        # read-only
-.venv/bin/python tests/smoke.py --job  # + submits a tiny 5-min job
-
-# rebuild the docs index (from server/)
-.venv/bin/python -m rikyu_mcp.rag.ingest
-```
-
-Bump version in both `.claude-plugin/plugin.json` and `server/pyproject.toml` on every release.
