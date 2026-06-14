@@ -97,6 +97,33 @@ async def hpc_checks(submit: bool) -> None:
             if not submit:
                 return
 
+            # container: run a job inside a Singularity image
+            container_spec = {
+                "name": "rikyu-container-test",
+                "executable": "cat /etc/os-release && uname -m",
+                "resources": {"node_count": 1, "gpus_per_node": 1},
+                "attributes": {"duration": "00:05:00", "queue_name": "1n1gpu"},
+                "container": {
+                    "image": "$HOME/ubuntu-22.04.sif",
+                },
+            }
+            out_c = await call(session, "submit_job", {"spec": container_spec})
+            container_job_id = json.loads(out_c)["job_id"]
+            print(f">>> container job {container_job_id}; polling...\n")
+            for _ in range(20):
+                cjob_text = await call(session, "get_job_status", {"job_id": container_job_id})
+                cjob = json.loads(cjob_text)
+                if cjob["status"]["state"] in ("completed", "failed", "canceled"):
+                    break
+                await asyncio.sleep(15)
+            assert cjob["status"]["state"] == "completed", \
+                f"container job ended {cjob['status']['state']}"
+            workdir = cjob["status"]["meta_data"]["workdir"]
+            output = await call(session, "fs_tail",
+                                {"path": f"{workdir}/slurm-{container_job_id}.out"})
+            assert "ubuntu" in output.lower(), f"expected ubuntu in container output: {output}"
+            print(">>> container job output confirmed ubuntu inside singularity\n")
+
             # update_job: submit a job, extend its wall time, then cancel
             spec_hold = {
                 "name": "rikyu-update-test",

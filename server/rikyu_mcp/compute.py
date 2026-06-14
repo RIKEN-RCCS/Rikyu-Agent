@@ -102,7 +102,8 @@ def render_script(spec: JobSpec) -> str:
         for m in c.volume_mounts:
             bind = f"{m.source}:{m.target}" + (":ro" if m.read_only else "")
             sing_flags.append(f"--bind {shlex.quote(bind)}")
-        sing_flags.append(shlex.quote(c.image))
+        # Double-quote image path so shell variables like $HOME expand in the script
+        sing_flags.append(f'"{c.image}"')
         command = "singularity exec " + " ".join(sing_flags) + " bash -c " + shlex.quote(command)
 
     if spec.launcher:
