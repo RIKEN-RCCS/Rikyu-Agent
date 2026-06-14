@@ -31,8 +31,3 @@ Settings live in `~/.rikyu/config.json`:
 `ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required).
 `embedding` points at any OpenAI-compatible `/v1/embeddings` endpoint; omit it to fall back to BM25 keyword search. Env vars `RIKYU_HOST`, `RIKYU_EMBED_BASE_URL`, `RIKYU_EMBED_API_KEY`, `RIKYU_EMBED_MODEL` override the file.
 
-Ask the agent to configure it (`configuring` skill), or validate manually:
-
-```bash
-server/run.sh rikyu_mcp.doctor
-```
