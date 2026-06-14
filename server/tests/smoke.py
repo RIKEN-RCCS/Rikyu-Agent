@@ -50,7 +50,23 @@ async def hpc_checks(submit: bool) -> None:
 
             await call(session, "get_facility")
             await call(session, "get_resources")
+            await call(session, "get_resource", {"resource_id": "ai4s"})
             await call(session, "get_job_statuses", {"job_ids": []})
+
+            # filesystem utilities
+            await call(session, "fs_upload",
+                       {"path": "/tmp/rikyu-smoke.txt", "content": "smoke test\n"})
+            csum1 = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke.txt"})
+            await call(session, "fs_cp",
+                       {"src": "/tmp/rikyu-smoke.txt", "dst": "/tmp/rikyu-smoke-copy.txt"})
+            csum2 = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke-copy.txt"})
+            assert csum1.split()[0] == csum2.split()[0], "checksum mismatch after cp"
+            await call(session, "fs_mv",
+                       {"src": "/tmp/rikyu-smoke-copy.txt", "dst": "/tmp/rikyu-smoke-moved.txt"})
+            csum3 = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke-moved.txt"})
+            assert csum1.split()[0] == csum3.split()[0], "checksum changed across mv"
+            await call(session, "run_command_on_cluster",
+                       {"command": "rm -f /tmp/rikyu-smoke.txt /tmp/rikyu-smoke-moved.txt"})
 
             if not submit:
                 return

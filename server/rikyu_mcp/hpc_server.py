@@ -46,6 +46,21 @@ def get_resources() -> list[dict]:
     Returns the AI4S resource with a per-partition node-state summary
     (allocated/idle/other/total) from sinfo.
     """
+    return [_resource_detail()]
+
+
+@mcp.tool()
+def get_resource(resource_id: str = RESOURCE_ID) -> dict:
+    """Get detailed state for a single resource. (IRI: GET /status/resources/{resource_id})
+
+    Includes per-partition node counts and any drained/draining nodes with
+    their reasons (from sinfo -R).
+    """
+    _check_resource(resource_id)
+    return _resource_detail(include_drain=True)
+
+
+def _resource_detail(include_drain: bool = False) -> dict:
     summary = run_command("sinfo --summarize --format='%P|%a|%l|%F'")
     partitions = []
     for line in summary.strip().splitlines():
@@ -60,12 +75,21 @@ def get_resources() -> list[dict]:
             "nodes": {"allocated": int(alloc), "idle": int(idle),
                       "other": int(other), "total": int(total)},
         })
-    return [{
+    resource: dict = {
         "id": RESOURCE_ID,
         "type": "compute",
         "description": "RIKEN AI4S supercomputer (NVIDIA GB200, aarch64)",
         "partitions": partitions,
-    }]
+    }
+    if include_drain:
+        drain = run_command("sinfo -R --format='%N|%T|%E' --noheader")
+        drained = []
+        for line in drain.strip().splitlines():
+            parts = line.split("|", 2)
+            if len(parts) == 3:
+                drained.append({"nodes": parts[0], "state": parts[1], "reason": parts[2]})
+        resource["drained_nodes"] = drained
+    return resource
 
 
 # === compute =================================================================
@@ -174,6 +198,30 @@ def fs_upload(path: str, content: str) -> str:
     """
     abs_path = write_remote_file(path, content)
     return f"Wrote {len(content)} bytes to {abs_path}"
+
+
+@mcp.tool()
+def fs_checksum(path: str) -> str:
+    """SHA-256 checksum of a file on the cluster. (IRI: GET /filesystem/checksum)"""
+    return run_command(f"sha256sum {shlex.quote(path)}")
+
+
+@mcp.tool()
+def fs_cp(src: str, dst: str) -> str:
+    """Copy a file or directory on the cluster. (IRI: POST /filesystem/cp)
+
+    Uses cp -r so it works for both files and directories.
+    """
+    return run_command(f"cp -r {shlex.quote(src)} {shlex.quote(dst)} && echo ok")
+
+
+@mcp.tool()
+def fs_mv(src: str, dst: str) -> str:
+    """Move or rename a file or directory on the cluster. (IRI: POST /filesystem/mv)
+
+    Destructive — the source path will no longer exist after this call.
+    """
+    return run_command(f"mv {shlex.quote(src)} {shlex.quote(dst)} && echo ok")
 
 
 # === extensions (not part of the IRI API) ====================================

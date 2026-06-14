@@ -38,9 +38,15 @@ Point out which partitions have the most idle nodes right now — that's where a
 
 ## Step 3 — Filesystem
 
-Call `fs_ls(".")` to list the user's home directory.
+Call `fs_ls(".")` to list the user's home directory. Show the listing cleanly (just names, sizes, dates — no raw flag noise). Highlight anything interesting: job scripts in `.rikyu/jobs/`, scratch symlinks, project directories.
 
-Show the listing cleanly (skip the raw `ls -l` flags noise — just names, sizes, dates). Highlight anything interesting: existing job scripts in `.rikyu/jobs/`, scratch symlinks, project directories.
+Then demonstrate the new filesystem tools:
+1. `fs_cp(".rikyu/jobs/<most recent script>", "/tmp/demo-copy.sh")` — copy the most recent job script
+2. `fs_checksum("/tmp/demo-copy.sh")` — show the SHA-256
+3. `fs_mv("/tmp/demo-copy.sh", "/tmp/demo-renamed.sh")` — rename it, note this is destructive
+4. `fs_checksum("/tmp/demo-renamed.sh")` — confirm the checksum matches (same file)
+
+Present this as: *"Copy, checksum, move — the full filesystem toolkit."*
 
 ---
 

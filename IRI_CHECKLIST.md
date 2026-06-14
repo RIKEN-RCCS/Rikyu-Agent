@@ -20,7 +20,7 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
 | GET /status/resources | `get_resources` | ✅ | One resource (`ai4s`) with per-partition node summary from sinfo |
-| GET /status/resources/{resource_id} | — | 🔜 | Trivial filter over `get_resources`; add detailed view (per-node states, drain reasons via `sinfo -R`) |
+| GET /status/resources/{resource_id} | `get_resource` | ✅ | Per-partition node counts + drained nodes with reasons (`sinfo -R`) |
 | GET /status/incidents | — | ❌ | No incident data source on AI4S; closest signal is drained nodes / maintenance reservations (`scontrol show reservation`) |
 | GET /status/incidents/{id} | — | ❌ | Same |
 | GET /status/events | — | ❌ | Same |
@@ -62,9 +62,9 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | POST /filesystem/mkdir | `fs_mkdir` | ✅ | |
 | POST /filesystem/upload | `fs_upload` | ✅ | Text content via MCP (IRI uses multipart; binary deferred) |
 | GET /filesystem/download | — | ❌ | Binary transfer doesn't fit MCP text content |
-| GET /filesystem/checksum | — | 🔜 | Trivial (`sha256sum`) |
-| POST /filesystem/mv | — | 🔜 | Destructive-ish; add with confirmation guidance in skill |
-| POST /filesystem/cp | — | 🔜 | Same |
+| GET /filesystem/checksum | `fs_checksum` | ✅ | `sha256sum` |
+| POST /filesystem/mv | `fs_mv` | ✅ | `mv`; docstring notes it is destructive |
+| POST /filesystem/cp | `fs_cp` | ✅ | `cp -r` |
 | DELETE /filesystem/rm | — | ❌ | Deliberately omitted (destructive); agent can use escape hatch with user confirmation |
 | PUT /filesystem/chmod | — | ❌ | Low value for agent workflows |
 | PUT /filesystem/chown | — | ❌ | Not permitted for normal users anyway |
