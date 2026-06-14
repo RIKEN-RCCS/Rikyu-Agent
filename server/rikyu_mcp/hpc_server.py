@@ -285,6 +285,24 @@ def fs_checksum(path: str) -> str:
 
 
 @mcp.tool()
+def fs_download(path: str) -> str:
+    """Download a small file from the cluster as base64. (IRI: GET /filesystem/download)
+
+    Capped at 5 MB (matching IRI spec). Use fs_compress first for larger files,
+    then download the archive. The caller can base64-decode and write locally.
+    """
+    size_out = run_command(f"stat -c %s {shlex.quote(path)}")
+    size = int(size_out.strip())
+    if size > 5 * 1024 * 1024:
+        raise ValueError(
+            f"File is {size:,} bytes — exceeds 5 MB limit. "
+            f"Compress it first with fs_compress, or transfer with: "
+            f"scp rikyu:{path} ."
+        )
+    return run_command(f"base64 {shlex.quote(path)}")
+
+
+@mcp.tool()
 def fs_cp(src: str, dst: str) -> str:
     """Copy a file or directory on the cluster. (IRI: POST /filesystem/cp)
 

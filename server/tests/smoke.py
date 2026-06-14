@@ -61,6 +61,9 @@ async def hpc_checks(submit: bool) -> None:
             await call(session, "fs_upload",
                        {"path": "/tmp/rikyu-smoke.txt", "content": "smoke test\n"})
             csum1 = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke.txt"})
+            b64 = await call(session, "fs_download", {"path": "/tmp/rikyu-smoke.txt"})
+            import base64
+            assert base64.b64decode(b64.strip()).decode() == "smoke test\n", "download content mismatch"
             await call(session, "fs_cp",
                        {"src": "/tmp/rikyu-smoke.txt", "dst": "/tmp/rikyu-smoke-copy.txt"})
             csum2 = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke-copy.txt"})

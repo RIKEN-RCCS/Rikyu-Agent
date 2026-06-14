@@ -61,7 +61,7 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | GET /filesystem/tail | `fs_tail` | ✅ | Primary way to read job output |
 | POST /filesystem/mkdir | `fs_mkdir` | ✅ | |
 | POST /filesystem/upload | `fs_upload` | ✅ | Text content via MCP (IRI uses multipart; binary deferred) |
-| GET /filesystem/download | — | ❌ | Binary transfer doesn't fit MCP text content |
+| GET /filesystem/download | `fs_download` | ✅ | Base64-encoded content; 5 MB cap matching IRI spec; suggests scp for larger files |
 | GET /filesystem/checksum | `fs_checksum` | ✅ | `sha256sum` |
 | POST /filesystem/mv | `fs_mv` | ✅ | `mv`; docstring notes it is destructive |
 | POST /filesystem/cp | `fs_cp` | ✅ | `cp -r` |
