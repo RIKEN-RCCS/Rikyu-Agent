@@ -67,14 +67,16 @@ async def hpc_checks(submit: bool) -> None:
 
             for _ in range(20):
                 status_text = await call(session, "get_job_status", {"job_id": job_id})
-                status = json.loads(status_text)
-                if status["state"] in ("COMPLETED", "FAILED", "CANCELED"):
+                job = json.loads(status_text)
+                state = job["status"]["state"]
+                if state in ("completed", "failed", "canceled"):
                     break
                 await asyncio.sleep(15)
 
-            assert status["state"] == "COMPLETED", f"job ended {status['state']}"
+            assert state == "completed", f"job ended {state}"
+            workdir = job["status"]["meta_data"]["workdir"]
             await call(session, "fs_tail",
-                       {"path": f"{status['workdir']}/slurm-{job_id}.out", "lines": 20})
+                       {"path": f"{workdir}/slurm-{job_id}.out", "lines": 20})
 
 
 async def main() -> None:
