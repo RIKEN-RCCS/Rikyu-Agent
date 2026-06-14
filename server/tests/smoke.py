@@ -72,6 +72,25 @@ async def hpc_checks(submit: bool) -> None:
             await call(session, "run_command_on_cluster",
                        {"command": "rm -f /tmp/rikyu-smoke.txt /tmp/rikyu-smoke-moved.txt"})
 
+            # chmod / chown / symlink / compress / extract
+            await call(session, "fs_upload",
+                       {"path": "/tmp/rikyu-fs-test.txt", "content": "hello\n"})
+            await call(session, "fs_chmod",
+                       {"path": "/tmp/rikyu-fs-test.txt", "mode": "644"})
+            await call(session, "fs_symlink",
+                       {"path": "/tmp/rikyu-fs-test.txt", "link_path": "/tmp/rikyu-fs-link.txt"})
+            await call(session, "fs_compress",
+                       {"path": "/tmp/rikyu-fs-test.txt",
+                        "target_path": "/tmp/rikyu-fs-test.tar.gz",
+                        "compression": "gzip"})
+            await call(session, "fs_extract",
+                       {"path": "/tmp/rikyu-fs-test.tar.gz",
+                        "target_path": "/tmp/rikyu-fs-extracted",
+                        "compression": "gzip"})
+            await call(session, "run_command_on_cluster",
+                       {"command": "rm -rf /tmp/rikyu-fs-test.txt /tmp/rikyu-fs-link.txt "
+                                   "/tmp/rikyu-fs-test.tar.gz /tmp/rikyu-fs-extracted"})
+
             if not submit:
                 return
 

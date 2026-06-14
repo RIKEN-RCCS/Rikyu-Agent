@@ -66,11 +66,11 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | POST /filesystem/mv | `fs_mv` | ✅ | `mv`; docstring notes it is destructive |
 | POST /filesystem/cp | `fs_cp` | ✅ | `cp -r` |
 | DELETE /filesystem/rm | — | ❌ | Deliberately omitted (destructive); agent can use escape hatch with user confirmation |
-| PUT /filesystem/chmod | — | ❌ | Low value for agent workflows |
-| PUT /filesystem/chown | — | ❌ | Not permitted for normal users anyway |
-| POST /filesystem/symlink | — | ❌ | Low value |
-| POST /filesystem/compress | — | ❌ | Escape hatch covers it |
-| POST /filesystem/extract | — | ❌ | Escape hatch covers it |
+| PUT /filesystem/chmod | `fs_chmod` | ✅ | `chmod` |
+| PUT /filesystem/chown | `fs_chown` | ✅ | `chown`; group-only changes work for normal users |
+| POST /filesystem/symlink | `fs_symlink` | ✅ | `ln -s` |
+| POST /filesystem/compress | `fs_compress` | ✅ | `tar`; supports gzip/bzip2/xz/none + match_pattern via find |
+| POST /filesystem/extract | `fs_extract` | ✅ | `tar -x` |
 
 ## task
 
@@ -125,7 +125,7 @@ Verified against `openapi.json` (fetched 2026-06-12 from api.alcf.anl.gov).
 | `pre_launch` | present (script before job) | absent | 🔜 Add; prepend to sbatch script body |
 | `post_launch` | present (script after job) | absent | 🔜 Add; append to sbatch script body |
 | `launcher` | present (e.g. `srun`, `mpirun`) | absent | 🔜 Add; prepend to `executable` in script |
-| `container` | present (Container: image + mounts) | absent | ❌ Defer — requires Apptainer/Singularity on AI4S; verify availability first |
+| `container` | present (Container: image + mounts) | present ✅ | Singularity 4.3.7 on AI4S; `--nv` added when GPUs requested; launcher placed outside singularity exec |
 
 ### JobState
 

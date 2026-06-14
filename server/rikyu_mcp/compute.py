@@ -93,6 +93,18 @@ def render_script(spec: JobSpec) -> str:
     command = spec.executable
     if spec.arguments:
         command += " " + " ".join(shlex.quote(a) for a in spec.arguments)
+
+    if spec.container:
+        c = spec.container
+        sing_flags = []
+        if res.gpus_per_node or res.gpu_cores_per_process:
+            sing_flags.append("--nv")
+        for m in c.volume_mounts:
+            bind = f"{m.source}:{m.target}" + (":ro" if m.read_only else "")
+            sing_flags.append(f"--bind {shlex.quote(bind)}")
+        sing_flags.append(shlex.quote(c.image))
+        command = "singularity exec " + " ".join(sing_flags) + " bash -c " + shlex.quote(command)
+
     if spec.launcher:
         command = spec.launcher + " " + command
     lines.append(command)

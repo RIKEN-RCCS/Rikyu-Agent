@@ -78,6 +78,33 @@ class JobAttributes(BaseModel):
     custom_attributes: dict[str, str] = Field(default_factory=dict)
 
 
+class CompressionType(str, Enum):
+    """Compression format for fs_compress / fs_extract (IRI CompressionType)."""
+    NONE = "none"
+    BZIP2 = "bzip2"
+    GZIP = "gzip"
+    XZ = "xz"
+
+
+class VolumeMount(BaseModel):
+    """A host path mounted into a container (IRI VolumeMount)."""
+    source: str = Field(description="Host path to mount")
+    target: str = Field(description="Path inside the container")
+    read_only: bool = Field(True, description="Mount as read-only")
+
+
+class Container(BaseModel):
+    """Container specification (IRI Container); executed with Singularity on AI4S.
+
+    image may be a Singularity image path (.sif), a docker:// URI, or any
+    format Singularity supports. GPU passthrough (--nv) is added automatically
+    when the job requests GPUs. launcher (e.g. 'srun') is placed outside the
+    singularity exec call so MPI works correctly.
+    """
+    image: str = Field(description="Singularity image path or URI (e.g. docker://ubuntu:22.04)")
+    volume_mounts: list[VolumeMount] = Field(default_factory=list)
+
+
 class JobSpec(BaseModel):
     """Job specification (IRI/PSI/J JobSpec subset).
 
@@ -85,6 +112,7 @@ class JobSpec(BaseModel):
     executable may be a shell line (e.g. 'module load nvhpc && srun ./app').
     launcher, if set, is prepended to executable (e.g. 'srun').
     pre_launch / post_launch are script lines inserted before / after.
+    If container is set, the command is wrapped in 'singularity exec'.
     """
     name: str = "rikyu-job"
     executable: str
@@ -100,6 +128,7 @@ class JobSpec(BaseModel):
     pre_launch: str | None = Field(None, description="Script lines to insert before executable")
     post_launch: str | None = Field(None, description="Script lines to insert after executable")
     launcher: str | None = Field(None, description="Launcher prefix, e.g. 'srun' or 'mpirun -np 4'")
+    container: Container | None = Field(None, description="Run inside a Singularity container")
 
 
 class JobStatus(BaseModel):

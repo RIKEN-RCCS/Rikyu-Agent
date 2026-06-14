@@ -11,7 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 from rikyu_mcp import compute, config
 from rikyu_mcp.middleware import run_command, write_remote_file
-from rikyu_mcp.models import Job, JobSpec
+from rikyu_mcp.models import CompressionType, Job, JobSpec
 from rikyu_mcp.serving import serve
 
 mcp = FastMCP("rikyu-hpc")
@@ -300,6 +300,101 @@ def fs_mv(src: str, dst: str) -> str:
     Destructive — the source path will no longer exist after this call.
     """
     return run_command(f"mv {shlex.quote(src)} {shlex.quote(dst)} && echo ok")
+
+
+@mcp.tool()
+def fs_chmod(path: str, mode: str) -> str:
+    """Change file permissions on the cluster. (IRI: PUT /filesystem/chmod)
+
+    mode is an octal string, e.g. '755' or '644'.
+    """
+    return run_command(f"chmod {shlex.quote(mode)} {shlex.quote(path)} && echo ok")
+
+
+@mcp.tool()
+def fs_chown(path: str, owner: str = "", group: str = "") -> str:
+    """Change file ownership on the cluster. (IRI: PUT /filesystem/chown)
+
+    Supply owner, group, or both. Normal users can only change group to one
+    they belong to; changing owner requires root.
+    """
+    if not owner and not group:
+        raise ValueError("Provide at least one of owner or group")
+    spec = owner + (":" + group if group else "")
+    return run_command(f"chown {shlex.quote(spec)} {shlex.quote(path)} && echo ok")
+
+
+@mcp.tool()
+def fs_symlink(path: str, link_path: str) -> str:
+    """Create a symbolic link on the cluster. (IRI: POST /filesystem/symlink)
+
+    path is the target; link_path is the new symlink to create.
+    """
+    return run_command(
+        f"ln -s {shlex.quote(path)} {shlex.quote(link_path)} && echo ok"
+    )
+
+
+_COMPRESSION_FLAGS = {
+    CompressionType.NONE: "",
+    CompressionType.GZIP: "z",
+    CompressionType.BZIP2: "j",
+    CompressionType.XZ: "J",
+}
+
+
+@mcp.tool()
+def fs_compress(
+    target_path: str,
+    path: str | None = None,
+    match_pattern: str | None = None,
+    dereference: bool = False,
+    compression: CompressionType = CompressionType.GZIP,
+) -> str:
+    """Create an archive on the cluster. (IRI: POST /filesystem/compress)
+
+    target_path: path of the archive to create.
+    path: source file or directory (defaults to current directory).
+    match_pattern: regex passed to find -regex to filter files.
+    dereference: follow symlinks (-h).
+    compression: gzip (default), bzip2, xz, or none.
+    """
+    flag = _COMPRESSION_FLAGS[compression]
+    deref = "h" if dereference else ""
+    tar_flags = f"-{deref}c{flag}f"
+
+    if match_pattern:
+        src = shlex.quote(path or ".")
+        pattern = shlex.quote(match_pattern)
+        cmd = (
+            f"find {src} -regex {pattern} -print0 | "
+            f"tar {tar_flags} {shlex.quote(target_path)} --null -T -"
+        )
+    else:
+        src = shlex.quote(path or ".")
+        cmd = f"tar {tar_flags} {shlex.quote(target_path)} {src}"
+
+    return run_command(cmd + " && echo ok")
+
+
+@mcp.tool()
+def fs_extract(
+    path: str,
+    target_path: str,
+    compression: CompressionType = CompressionType.GZIP,
+) -> str:
+    """Extract an archive on the cluster. (IRI: POST /filesystem/extract)
+
+    path: archive file to extract.
+    target_path: directory to extract into (created if absent).
+    compression: gzip (default), bzip2, xz, or none.
+    """
+    flag = _COMPRESSION_FLAGS[compression]
+    tar_flags = f"-x{flag}f"
+    return run_command(
+        f"mkdir -p {shlex.quote(target_path)} && "
+        f"tar {tar_flags} {shlex.quote(path)} -C {shlex.quote(target_path)} && echo ok"
+    )
 
 
 # === extensions (not part of the IRI API) ====================================
