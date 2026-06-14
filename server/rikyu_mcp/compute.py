@@ -95,6 +95,8 @@ def render_script(spec: JobSpec) -> str:
         command += " " + " ".join(shlex.quote(a) for a in spec.arguments)
 
     if spec.container:
+        # Use singularity exec: pyxis/enroot is installed on AI4S but broken
+        # (/run/user/<uid> missing on compute nodes). Singularity exec works.
         c = spec.container
         sing_flags = []
         if res.gpus_per_node or res.gpu_cores_per_process:
@@ -102,7 +104,7 @@ def render_script(spec: JobSpec) -> str:
         for m in c.volume_mounts:
             bind = f"{m.source}:{m.target}" + (":ro" if m.read_only else "")
             sing_flags.append(f"--bind {shlex.quote(bind)}")
-        # Double-quote image path so shell variables like $HOME expand in the script
+        # Double-quote image so shell variables like $HOME expand in the script
         sing_flags.append(f'"{c.image}"')
         command = "singularity exec " + " ".join(sing_flags) + " bash -c " + shlex.quote(command)
 

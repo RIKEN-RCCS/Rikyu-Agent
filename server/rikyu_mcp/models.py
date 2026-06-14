@@ -94,12 +94,13 @@ class VolumeMount(BaseModel):
 
 
 class Container(BaseModel):
-    """Container specification (IRI Container); executed with Singularity on AI4S.
+    """Container specification (IRI Container); executed via singularity exec on AI4S.
 
-    image may be a Singularity image path (.sif), a docker:// URI, or any
-    format Singularity supports. GPU passthrough (--nv) is added automatically
-    when the job requests GPUs. launcher (e.g. 'srun') is placed outside the
-    singularity exec call so MPI works correctly.
+    image must be a path to a .sif file (absolute or using $HOME). Docker URIs
+    and pyxis/enroot are NOT used: pyxis is installed on AI4S but broken
+    (/run/user/<uid> missing on compute nodes as of 2026-06).
+    GPU passthrough (--nv) is added automatically when the job requests GPUs.
+    launcher (e.g. 'srun') is placed outside singularity exec so MPI works.
     """
     image: str = Field(description="Singularity image path or URI (e.g. docker://ubuntu:22.04)")
     volume_mounts: list[VolumeMount] = Field(default_factory=list)
