@@ -44,7 +44,7 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | IRI endpoint | Tool | Status | Notes |
 |---|---|---|---|
 | POST /compute/job/{resource_id} | `submit_job` | ✅ | JobSpec → sbatch script (kept in `~/.rikyu/jobs/`); returns `{job_id, script_path}` — see deviation note below |
-| PUT /compute/job/{rid}/{job_id} | — | 🔜 | Map to `scontrol update job`; only valid pre-start for most fields |
+| PUT /compute/job/{rid}/{job_id} | `update_job` | ✅ | `scontrol update job`; time_limit works on running jobs; partition/account/reservation queued-only |
 | GET /compute/status/{rid}/{job_id} | `get_job_status` | ✅ | Returns our `JobStatus` directly — see deviation note below |
 | POST /compute/status/{rid} | `get_job_statuses` | ✅ | Batch; empty list = current user's last 2 days |
 | DELETE /compute/cancel/{rid}/{job_id} | `cancel_job` | ✅ | scancel + post-cancel state report |

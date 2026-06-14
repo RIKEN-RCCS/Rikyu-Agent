@@ -182,6 +182,40 @@ def get_job_statuses(job_ids: list[str], resource_id: str = RESOURCE_ID) -> list
 
 
 @mcp.tool()
+def update_job(
+    job_id: str,
+    time_limit: str | None = None,
+    name: str | None = None,
+    partition: str | None = None,
+    account: str | None = None,
+    reservation: str | None = None,
+    resource_id: str = RESOURCE_ID,
+) -> Job:
+    """Update a queued or running job. (IRI: PUT /compute/job/{resource_id}/{job_id})
+
+    All fields are optional — only supplied ones are changed.
+    time_limit: new wall time as HH:MM:SS or D-HH:MM:SS (works on running jobs too).
+    partition, account, reservation: only valid while the job is still queued.
+    """
+    _check_resource(resource_id)
+    mapping = {
+        "TimeLimit": time_limit,
+        "Name": name,
+        "Partition": partition,
+        "Account": account,
+        "Reservation": reservation,
+    }
+    updates = " ".join(f"{k}={shlex.quote(v)}" for k, v in mapping.items() if v is not None)
+    if not updates:
+        raise ValueError("No fields to update — supply at least one argument")
+    run_command(f"scontrol update job {shlex.quote(job_id)} {updates}")
+    jobs = compute.get_statuses([job_id])
+    if not jobs:
+        raise ValueError(f"Job {job_id} not found after update")
+    return jobs[0]
+
+
+@mcp.tool()
 def cancel_job(job_id: str, resource_id: str = RESOURCE_ID) -> Job | str:
     """Cancel a queued or running job and report its resulting state.
     (IRI: DELETE /compute/cancel/{resource_id}/{job_id})

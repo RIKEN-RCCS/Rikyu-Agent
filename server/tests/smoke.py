@@ -75,6 +75,19 @@ async def hpc_checks(submit: bool) -> None:
             if not submit:
                 return
 
+            # update_job: submit a job, extend its wall time, then cancel
+            spec_hold = {
+                "name": "rikyu-update-test",
+                "executable": "sleep 300",
+                "attributes": {"duration": "00:05:00", "queue_name": "1n1gpu"},
+                "resources": {"node_count": 1, "gpus_per_node": 1},
+            }
+            out_hold = await call(session, "submit_job", {"spec": spec_hold})
+            hold_id = json.loads(out_hold)["job_id"]
+            await call(session, "update_job",
+                       {"job_id": hold_id, "time_limit": "00:10:00", "name": "rikyu-updated"})
+            await call(session, "cancel_job", {"job_id": hold_id})
+
             spec = {
                 "name": "rikyu-smoke",
                 "executable": "hostname && nvidia-smi -L && echo scratch: $USER_SCRATCH_DIR",
