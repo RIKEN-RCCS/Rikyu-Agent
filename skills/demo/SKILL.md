@@ -86,11 +86,40 @@ Once completed, call `fs_tail(<workdir>/slurm-<job_id>.out)` and show the output
 
 ---
 
+## Step 7 — Container job
+
+Tell the user: *"Now let's run the same job inside a Singularity container — this is how you bring your own software environment to the cluster."*
+
+Check whether `$HOME/ubuntu-22.04.sif` exists with `fs_stat("~/ubuntu-22.04.sif")`. If it doesn't, skip this step and note that a `.sif` file is needed first (pull with `singularity pull`).
+
+If it exists, submit via `submit_job`:
+```json
+{
+  "name": "rikyu-demo-container",
+  "executable": "cat /etc/os-release && uname -m",
+  "resources": {"node_count": 1, "gpus_per_node": 1},
+  "attributes": {"duration": 300, "queue_name": "1n1gpu"},
+  "container": {
+    "image": "$HOME/ubuntu-22.04.sif"
+  }
+}
+```
+
+Poll to completion, then `fs_tail` the output. Point out:
+- The OS name comes from *inside* the container (Ubuntu), not from the host (RHEL/Rocky)
+- The architecture is still `aarch64` — the container runs natively on Grace
+- GPU passthrough (`--nv`) was added automatically because the job requested GPUs
+
+Say: *"The same spec works with any Singularity-compatible image — docker:// URIs, NGC containers, or a .sif you built yourself."*
+
+---
+
 ## Closing
 
-Summarize what just happened in 3 bullet points:
+Summarize what just happened in 4 bullet points:
 - Facility and live cluster status checked
-- Filesystem explored, recent job history shown
-- Job submitted, ran, output retrieved
+- Filesystem explored with copy, checksum, and move
+- Bare-metal job submitted, ran, GPU output retrieved
+- Container job ran inside Ubuntu on the same GB200 hardware
 
 Then say: *"From here you can submit real workloads with /submitting-jobs, monitor them with /monitoring-jobs, or ask anything about the cluster."*
