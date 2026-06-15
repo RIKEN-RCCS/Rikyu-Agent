@@ -102,58 +102,68 @@ Extensions with no IRI counterpart are allowed but must be marked as such
 
 ---
 
-## 3. Phase 1 — Explore the machine
+## 3. Phase 1 — Read the documentation
 
-Before writing any scheduler-specific code, map the environment. Use
-`run_command_on_cluster` (or direct SSH) to answer these questions and
-record the answers in the new machine's `ai4s_config.json` equivalent.
+The user will have provided the machine's documentation (a local path or
+repo). Read it fully before touching the cluster. The docs are the ground
+truth for scheduler type, queue/partition names, GPU configuration, storage
+layout, module system, and site-specific conventions. Build a mental model
+from the docs first; SSH exploration is to fill gaps and verify, not to
+discover from scratch.
 
-**Scheduler:**
+While reading, extract answers to these questions and record them — they
+become the static config JSON and inform everything that follows:
+
+- What scheduler is used? (Slurm / PBS / LSF / other)
+- What are the queue/partition names and their resource limits?
+- How are GPUs requested?
+- What are the storage tiers and their environment variable names?
+- What container runtime is available (Singularity, Apptainer, pyxis)?
+- What is the SSH hostname / alias convention?
+- Are there project/account identifiers required for job submission?
+- What modules are available and how is the module system loaded?
+
+Fill in the static config JSON (`data/<machine>_config.json`) from the docs
+before writing any tools. `get_facility` should return accurate data from
+day one.
+
+---
+
+## 4. Phase 2 — Explore the machine
+
+With the docs as context, use `run_command_on_cluster` to verify assumptions
+and fill in anything the docs left ambiguous. Prefer targeted commands that
+confirm specific facts over broad exploration.
+
+**Confirm scheduler:**
 ```bash
 which sbatch squeue sacct      # Slurm
 which qsub qstat               # PBS/Torque
 which bsub bjobs               # LSF
-which sinfo                    # confirms Slurm
 <scheduler> --version
 ```
 
-**Job submission primitives:** submit a trivial job (`hostname`) and observe:
+**Job submission primitives:** submit a trivial job (`hostname`) and observe
+the real output — this pins the exact format your parsers must handle:
 - What does a successful submit print? (Slurm: `Submitted batch job <id>`)
-- What field is the job ID?
-- What is the script header format? (`#SBATCH` / `#PBS` / `#BSUB`)
-- What does status output look like?
-- What are the available queues/partitions?
-- How are GPUs requested?
-- What is the max walltime per queue?
-
-Do this with `run_command_on_cluster` so you know the real behavior before
-coding any assumptions in.
+- What does status/accounting output look like field by field?
 
 **Filesystem:**
 ```bash
-echo $HOME $SCRATCH              # standard dirs
+echo $HOME $SCRATCH              # confirm env var names
 df -h                            # storage tiers
 ls -la $HOME                     # home layout
 ```
 
-**Modules:**
-```bash
-module avail 2>&1 | head -40     # available software
-```
-
-**Account / project system:**
-```bash
-groups                           # Unix groups
-# Slurm: sacctmgr show user $USER associations
-# PBS: check project flags on qsub
-```
-
-Record everything. Fill in the static config JSON before writing tools —
-`get_facility` should return accurate data from day one.
+**Container runtime:** if the docs mention a container runtime, probe it
+on a compute node before committing to it in `compute.py`. On AI4S,
+pyxis/enroot was documented as available but broken in practice
+(`/run/user/<uid>` absent on compute nodes) — `singularity exec` worked.
+Trust running experiments over documentation here.
 
 ---
 
-## 4. Phase 2 — Adapt config and models
+## 5. Phase 3 — Adapt config and models
 
 **`config.py`:**
 - Change `ssh_host()` default to the new machine's SSH alias/hostname.
@@ -176,7 +186,7 @@ Slurm. The normalized states are fixed: `QUEUED`, `ACTIVE`, `COMPLETED`,
 
 ---
 
-## 5. Phase 3 — Implement the scheduler layer
+## 6. Phase 4 — Implement the scheduler layer
 
 **`compute.py`** is the only file that knows the scheduler dialect. Rewrite
 it if needed, but keep the same interface:
@@ -207,7 +217,7 @@ write the parser.
 
 ---
 
-## 6. Phase 4 — Docs RAG
+## 7. Phase 5 — Docs RAG
 
 ```bash
 # clone the machine's doc repo into data/ or a temp dir
@@ -229,7 +239,7 @@ would get silently wrong cosine similarity results.
 
 ---
 
-## 7. Phase 5 — Skills
+## 8. Phase 6 — Skills
 
 Each skill is a `SKILL.md` that tells the agent *when* and *how* to use the
 tools for a specific workflow. Port these four:
@@ -246,7 +256,7 @@ the new machine's equivalents. Keep the structure.
 
 ---
 
-## 8. Phase 6 — Validate
+## 9. Phase 7 — Validate
 
 **`doctor.py`** runs all health checks in order:
 1. Config file present and parseable
@@ -264,7 +274,7 @@ only when everything else is green.
 
 ---
 
-## 9. Common failure modes and fixes
+## 10. Common failure modes and fixes
 
 | symptom | cause | fix |
 |---|---|---|
