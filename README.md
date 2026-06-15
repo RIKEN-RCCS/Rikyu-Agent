@@ -8,7 +8,8 @@ In Claude Code:
 
 ```
 /plugin marketplace add RIKEN-RCCS/Rikyu-Agent
-/plugin install rikyu
+/plugin install rikyu@rikyu-marketplace
+/reload-plugins
 ```
 
 Then run `/demo` to verify the connection end-to-end.
