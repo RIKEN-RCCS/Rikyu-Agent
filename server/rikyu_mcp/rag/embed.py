@@ -32,9 +32,6 @@ class EmbeddingClient:
         return [item["embedding"] for item in data]
 
 
-def get_client() -> EmbeddingClient | None:
-    """Build a client from the configuration, or None when not configured."""
-    settings = config.embedding()
-    if not settings["base_url"]:
-        return None
-    return EmbeddingClient(settings["base_url"], settings["model"], settings["api_key"])
+def get_client() -> EmbeddingClient:
+    """Build a client from the configuration."""
+    return EmbeddingClient(config.EMBED_BASE_URL, config.EMBED_MODEL, config.embed_api_key())

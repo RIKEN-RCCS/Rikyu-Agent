@@ -51,17 +51,13 @@ def check_ssh() -> bool:
 
 def check_embedding() -> bool:
     from rikyu_mcp.rag.embed import get_client
-    settings = config.embedding()
     client = get_client()
-    if client is None:
-        print(f"{WARN} embedding: not configured — docs search uses BM25 keyword fallback")
-        return True
     try:
         vector = client.embed(["connectivity probe"])[0]
     except Exception as e:
-        print(f"{FAIL} embedding ({settings['base_url']}, model={settings['model']}): {e}")
+        print(f"{FAIL} embedding ({config.EMBED_MODEL} @ {config.EMBED_BASE_URL}): {e}")
         return False
-    print(f"{OK} embedding: {settings['model']} @ {settings['base_url']} (dim {len(vector)})")
+    print(f"{OK} embedding: {config.EMBED_MODEL} @ {config.EMBED_BASE_URL} (dim {len(vector)})")
     return True
 
 

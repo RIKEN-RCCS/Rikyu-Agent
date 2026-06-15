@@ -36,7 +36,15 @@ Point out which partitions have the most idle nodes right now — that's where a
 
 ---
 
-## Step 3 — Filesystem
+## Step 3 — Documentation search
+
+Call `search_docs` with a practical question a new user would actually ask, e.g. *"how do I submit a batch job?"* or *"what storage is available?"*.
+
+Show the top result: the breadcrumb, a short excerpt, and the URL. Then note whether the result came from vector search or BM25 keyword fallback (the `method` field) — if vector, say: *"Semantic search is active — results are ranked by meaning, not just keyword matches."*
+
+---
+
+## Step 4 — Filesystem
 
 Call `fs_ls(".")` to list the user's home directory. Show the listing cleanly (just names, sizes, dates — no raw flag noise). Highlight anything interesting: job scripts in `.rikyu/jobs/`, scratch symlinks, project directories.
 
@@ -50,7 +58,7 @@ Present this as: *"Copy, checksum, move — the full filesystem toolkit."*
 
 ---
 
-## Step 4 — Recent jobs
+## Step 5 — Recent jobs
 
 Call `get_job_statuses([])` (empty list = last 2 days).
 
@@ -60,7 +68,7 @@ If there are no recent jobs, say so and move straight to Step 6.
 
 ---
 
-## Step 5 — Test job
+## Step 6 — Test job
 
 Tell the user: *"Let's submit a quick 5-minute test job to verify end-to-end submission and output."*
 
@@ -78,7 +86,7 @@ Show the user the rendered job ID and script path. Then call `get_job_status(<jo
 
 ---
 
-## Step 6 — Monitor and read output
+## Step 7 — Monitor and read output
 
 Poll `get_job_status` once every ~15 seconds (use `run_command_on_cluster("sleep 15")` as the wait). Stop when state is `completed` or `failed` (or after 5 polls — tell the user to check back with `get_job_status` if it's still queued).
 
@@ -86,7 +94,7 @@ Once completed, call `fs_tail(<workdir>/slurm-<job_id>.out)` and show the output
 
 ---
 
-## Step 7 — Container job
+## Step 8 — Container job
 
 Tell the user: *"Now let's run the same job inside a Singularity container — this is how you bring your own software environment to the cluster."*
 
@@ -116,8 +124,9 @@ Say: *"The same spec works with any Singularity-compatible image — docker:// U
 
 ## Closing
 
-Summarize what just happened in 4 bullet points:
+Summarize what just happened in 5 bullet points:
 - Facility and live cluster status checked
+- Documentation searched with semantic vector search
 - Filesystem explored with copy, checksum, and move
 - Bare-metal job submitted, ran, GPU output retrieved
 - Container job ran inside Ubuntu on the same GB200 hardware

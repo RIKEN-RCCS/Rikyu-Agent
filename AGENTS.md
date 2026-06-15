@@ -41,34 +41,25 @@ See README.md for the user-facing overview.
   Default walltime 12h, max 96h (4n4gpu-p unlimited).
 - `$USER_SCRATCH_DIR` = node-local NVMe (~7TB), deleted when the job ends.
 
-## Deferred: embedding / semantic search (not yet active)
+## Embedding / semantic search
 
-The docs RAG infrastructure exists but semantic search is not exposed to users
-yet. When activating it, the following pieces need to be wired up:
+Docs search uses BGE-M3 (`bge-m3:567m`) served at
+`http://llm.ai.r-ccs.riken.jp:11434/v1` — both are hardcoded constants
+(`EMBED_BASE_URL` / `EMBED_MODEL` in `config.py`). The only user-facing
+setting is `api_key` (`RIKYU_EMBED_API_KEY`). Without it, search falls back
+to BM25.
 
-**Config to add to `~/.rikyu/config.json` (and document in README):**
-```json
-{
-  "ssh": {"host": "rikyu"},
-  "embedding": {
-    "base_url": "https://your-serving-host/v1",
-    "api_key": "...",
-    "model": "your-embedding-model"
-  }
-}
-```
+**Do not make model or base_url user-configurable.** `embeddings.npy` is
+committed to the repo and is tied to `bge-m3:567m`; using a different model
+at query time silently produces garbage results. If the model ever changes,
+update the constants, re-run ingest, and commit the new `embeddings.npy`.
 
-**Env var overrides:** `RIKYU_EMBED_BASE_URL`, `RIKYU_EMBED_API_KEY`,
-`RIKYU_EMBED_MODEL` (alongside the existing `RIKYU_HOST`).
-
-**What the fields do:** `embedding` points at any OpenAI-compatible
-`/v1/embeddings` endpoint. Without it, `rag/store.py` falls back to BM25
-keyword search. `rag/embed.py` is the only file that knows the API dialect.
+`rag/embed.py` is the only file that knows the API dialect.
 
 **To rebuild the index with embeddings:** run
-`python -m rikyu_mcp.rag.ingest` with the embedding block configured — this
-produces `data/docs_index/embeddings.npy` alongside the existing
-`chunks.json`.
+`python -m rikyu_mcp.rag.ingest` — produces
+`data/docs_index/embeddings.npy` alongside `chunks.json`. Commit both files
+so the plugin works without a network round-trip to re-embed.
 
 ## Development workflow
 

@@ -90,10 +90,6 @@ def build_index(source: Path, out_dir: Path, embed: bool) -> None:
 
     from rikyu_mcp.rag.embed import get_client
     client = get_client()
-    if client is None:
-        emb_path.unlink(missing_ok=True)
-        print("RIKYU_EMBED_BASE_URL not set — skipped embeddings (keyword search only).")
-        return
 
     import numpy as np
 

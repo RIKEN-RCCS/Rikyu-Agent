@@ -75,10 +75,9 @@ class DocsIndex:
 
     def search(self, query: str, top_k: int = 5) -> list[dict]:
         """Return the top_k chunks with a 'score' and 'method' field added."""
-        client = get_client()
-        if self._embeddings is not None and client is not None:
+        if self._embeddings is not None:
             try:
-                return self._vector_search(query, top_k, client)
+                return self._vector_search(query, top_k, get_client())
             except Exception:
                 pass  # endpoint down — degrade to keyword search
         return self._keyword_search(query, top_k)

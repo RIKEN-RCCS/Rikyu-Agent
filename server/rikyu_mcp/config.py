@@ -9,16 +9,13 @@ The config file is created with the help of the `configuring` skill:
 
     {
       "ssh": {"host": "rikyu"},
-      "embedding": {
-        "base_url": "https://your-serving-host/v1",
-        "api_key": "...",
-        "model": "your-embedding-model"
-      }
+      "embedding": {"api_key": "..."}
     }
 
 `ssh.host` is an alias from ~/.ssh/config or a plain user@hostname; key-based
-auth is assumed (no credentials are stored here). The embedding endpoint must
-speak the OpenAI /v1/embeddings dialect.
+auth is assumed (no credentials are stored here). The embedding endpoint and
+model are hardcoded constants (EMBED_BASE_URL / EMBED_MODEL) — changing them
+requires a full re-ingest of the docs index.
 """
 import json
 import os
@@ -46,17 +43,18 @@ def ssh_host() -> str:
             or "rikyu")
 
 
-def embedding() -> dict:
-    """Embedding endpoint settings: base_url, api_key, model.
+EMBED_BASE_URL = "http://llm.ai.r-ccs.riken.jp:11434/v1"
+EMBED_MODEL = "bge-m3:567m"
 
-    base_url empty means not configured — docs search falls back to BM25.
+
+def embed_api_key() -> str:
+    """API key for the embedding endpoint (the only user-configurable embedding setting).
+
+    Override via RIKYU_EMBED_API_KEY or embedding.api_key in the config file.
+    Empty string means no auth header is sent.
     """
     file = _file_config().get("embedding", {})
-    return {
-        "base_url": os.environ.get("RIKYU_EMBED_BASE_URL") or file.get("base_url") or "",
-        "api_key": os.environ.get("RIKYU_EMBED_API_KEY") or file.get("api_key") or "",
-        "model": os.environ.get("RIKYU_EMBED_MODEL") or file.get("model") or "",
-    }
+    return os.environ.get("RIKYU_EMBED_API_KEY") or file.get("api_key") or ""
 
 
 # --- Static data ------------------------------------------------------------
