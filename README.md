@@ -1,6 +1,6 @@
 # RikyuAgent
 
-Claude Code plugin for the RIKEN AI4S supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
+Claude Code plugin for the RIKEN AI4S supercomputer — submit and monitor Slurm jobs and manage files on the cluster, all from the agent.
 
 ## Install
 
@@ -20,15 +20,9 @@ Settings live in `~/.rikyu/config.json`:
 
 ```json
 {
-  "ssh": {"host": "rikyu"},
-  "embedding": {
-    "base_url": "https://your-serving-host/v1",
-    "api_key": "...",
-    "model": "your-embedding-model"
-  }
+  "ssh": {"host": "rikyu"}
 }
 ```
 
-`ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required).
-`embedding` points at any OpenAI-compatible `/v1/embeddings` endpoint; omit it to fall back to BM25 keyword search. Env vars `RIKYU_HOST`, `RIKYU_EMBED_BASE_URL`, `RIKYU_EMBED_API_KEY`, `RIKYU_EMBED_MODEL` override the file.
+`ssh.host` is a `~/.ssh/config` alias or `user@hostname` (key-based auth required). The env var `RIKYU_HOST` overrides the file.
 

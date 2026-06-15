@@ -41,6 +41,35 @@ See README.md for the user-facing overview.
   Default walltime 12h, max 96h (4n4gpu-p unlimited).
 - `$USER_SCRATCH_DIR` = node-local NVMe (~7TB), deleted when the job ends.
 
+## Deferred: embedding / semantic search (not yet active)
+
+The docs RAG infrastructure exists but semantic search is not exposed to users
+yet. When activating it, the following pieces need to be wired up:
+
+**Config to add to `~/.rikyu/config.json` (and document in README):**
+```json
+{
+  "ssh": {"host": "rikyu"},
+  "embedding": {
+    "base_url": "https://your-serving-host/v1",
+    "api_key": "...",
+    "model": "your-embedding-model"
+  }
+}
+```
+
+**Env var overrides:** `RIKYU_EMBED_BASE_URL`, `RIKYU_EMBED_API_KEY`,
+`RIKYU_EMBED_MODEL` (alongside the existing `RIKYU_HOST`).
+
+**What the fields do:** `embedding` points at any OpenAI-compatible
+`/v1/embeddings` endpoint. Without it, `rag/store.py` falls back to BM25
+keyword search. `rag/embed.py` is the only file that knows the API dialect.
+
+**To rebuild the index with embeddings:** run
+`python -m rikyu_mcp.rag.ingest` with the embedding block configured — this
+produces `data/docs_index/embeddings.npy` alongside the existing
+`chunks.json`.
+
 ## Development workflow
 
 ```bash

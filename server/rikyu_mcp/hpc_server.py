@@ -10,7 +10,7 @@ import shlex
 from mcp.server.fastmcp import FastMCP
 
 from rikyu_mcp import compute, config
-from rikyu_mcp.middleware import run_command, write_remote_file
+from rikyu_mcp.middleware import quote_path, run_command, write_remote_file
 from rikyu_mcp.models import CompressionType, Job, JobSpec
 from rikyu_mcp.serving import serve
 
@@ -231,13 +231,13 @@ def cancel_job(job_id: str, resource_id: str = RESOURCE_ID) -> Job | str:
 def fs_ls(path: str = ".", show_hidden: bool = False) -> str:
     """List a directory on the cluster. (IRI: GET /filesystem/ls)"""
     flags = "-la" if show_hidden else "-l"
-    return run_command(f"ls {flags} {shlex.quote(path)}")
+    return run_command(f"ls {flags} {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_stat(path: str) -> str:
     """Stat a file or directory on the cluster. (IRI: GET /filesystem/stat)"""
-    return run_command(f"stat {shlex.quote(path)}")
+    return run_command(f"stat {quote_path(path)}")
 
 
 @mcp.tool()
@@ -245,13 +245,13 @@ def fs_view(path: str) -> str:
     """Read a whole text file on the cluster (output capped at 200KB).
     (IRI: GET /filesystem/view) For large files use fs_head/fs_tail.
     """
-    return run_command(f"cat {shlex.quote(path)}")
+    return run_command(f"cat {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_head(path: str, lines: int = 50) -> str:
     """Read the first lines of a file on the cluster. (IRI: GET /filesystem/head)"""
-    return run_command(f"head -n {int(lines)} {shlex.quote(path)}")
+    return run_command(f"head -n {int(lines)} {quote_path(path)}")
 
 
 @mcp.tool()
@@ -259,13 +259,13 @@ def fs_tail(path: str, lines: int = 50) -> str:
     """Read the last lines of a file on the cluster — e.g. a job's
     slurm-<job_id>.out. (IRI: GET /filesystem/tail)
     """
-    return run_command(f"tail -n {int(lines)} {shlex.quote(path)}")
+    return run_command(f"tail -n {int(lines)} {quote_path(path)}")
 
 
 @mcp.tool()
 def fs_mkdir(path: str) -> str:
     """Create a directory (and parents) on the cluster. (IRI: POST /filesystem/mkdir)"""
-    quoted = shlex.quote(path)
+    quoted = quote_path(path)
     return run_command(f"mkdir -p {quoted} && echo created: $(realpath {quoted})")
 
 
@@ -281,7 +281,7 @@ def fs_upload(path: str, content: str) -> str:
 @mcp.tool()
 def fs_checksum(path: str) -> str:
     """SHA-256 checksum of a file on the cluster. (IRI: GET /filesystem/checksum)"""
-    return run_command(f"sha256sum {shlex.quote(path)}")
+    return run_command(f"sha256sum {quote_path(path)}")
 
 
 @mcp.tool()
@@ -291,7 +291,7 @@ def fs_download(path: str) -> str:
     Capped at 5 MB (matching IRI spec). Use fs_compress first for larger files,
     then download the archive. The caller can base64-decode and write locally.
     """
-    size_out = run_command(f"stat -c %s {shlex.quote(path)}")
+    size_out = run_command(f"stat -c %s {quote_path(path)}")
     size = int(size_out.strip())
     if size > 5 * 1024 * 1024:
         raise ValueError(
@@ -299,7 +299,7 @@ def fs_download(path: str) -> str:
             f"Compress it first with fs_compress, or transfer with: "
             f"scp rikyu:{path} ."
         )
-    return run_command(f"base64 {shlex.quote(path)}")
+    return run_command(f"base64 {quote_path(path)}")
 
 
 @mcp.tool()
@@ -308,7 +308,7 @@ def fs_cp(src: str, dst: str) -> str:
 
     Uses cp -r so it works for both files and directories.
     """
-    return run_command(f"cp -r {shlex.quote(src)} {shlex.quote(dst)} && echo ok")
+    return run_command(f"cp -r {quote_path(src)} {quote_path(dst)} && echo ok")
 
 
 @mcp.tool()
@@ -317,7 +317,7 @@ def fs_mv(src: str, dst: str) -> str:
 
     Destructive — the source path will no longer exist after this call.
     """
-    return run_command(f"mv {shlex.quote(src)} {shlex.quote(dst)} && echo ok")
+    return run_command(f"mv {quote_path(src)} {quote_path(dst)} && echo ok")
 
 
 @mcp.tool()
@@ -326,7 +326,7 @@ def fs_chmod(path: str, mode: str) -> str:
 
     mode is an octal string, e.g. '755' or '644'.
     """
-    return run_command(f"chmod {shlex.quote(mode)} {shlex.quote(path)} && echo ok")
+    return run_command(f"chmod {shlex.quote(mode)} {quote_path(path)} && echo ok")
 
 
 @mcp.tool()
@@ -339,7 +339,7 @@ def fs_chown(path: str, owner: str = "", group: str = "") -> str:
     if not owner and not group:
         raise ValueError("Provide at least one of owner or group")
     spec = owner + (":" + group if group else "")
-    return run_command(f"chown {shlex.quote(spec)} {shlex.quote(path)} && echo ok")
+    return run_command(f"chown {shlex.quote(spec)} {quote_path(path)} && echo ok")
 
 
 @mcp.tool()
@@ -349,7 +349,7 @@ def fs_symlink(path: str, link_path: str) -> str:
     path is the target; link_path is the new symlink to create.
     """
     return run_command(
-        f"ln -s {shlex.quote(path)} {shlex.quote(link_path)} && echo ok"
+        f"ln -s {quote_path(path)} {quote_path(link_path)} && echo ok"
     )
 
 
@@ -382,15 +382,15 @@ def fs_compress(
     tar_flags = f"-{deref}c{flag}f"
 
     if match_pattern:
-        src = shlex.quote(path or ".")
+        src = quote_path(path or ".")
         pattern = shlex.quote(match_pattern)
         cmd = (
             f"find {src} -regex {pattern} -print0 | "
-            f"tar {tar_flags} {shlex.quote(target_path)} --null -T -"
+            f"tar {tar_flags} {quote_path(target_path)} --null -T -"
         )
     else:
-        src = shlex.quote(path or ".")
-        cmd = f"tar {tar_flags} {shlex.quote(target_path)} {src}"
+        src = quote_path(path or ".")
+        cmd = f"tar {tar_flags} {quote_path(target_path)} {src}"
 
     return run_command(cmd + " && echo ok")
 
@@ -410,8 +410,8 @@ def fs_extract(
     flag = _COMPRESSION_FLAGS[compression]
     tar_flags = f"-x{flag}f"
     return run_command(
-        f"mkdir -p {shlex.quote(target_path)} && "
-        f"tar {tar_flags} {shlex.quote(path)} -C {shlex.quote(target_path)} && echo ok"
+        f"mkdir -p {quote_path(target_path)} && "
+        f"tar {tar_flags} {quote_path(path)} -C {quote_path(target_path)} && echo ok"
     )
 
 

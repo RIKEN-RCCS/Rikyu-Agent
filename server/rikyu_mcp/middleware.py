@@ -16,6 +16,25 @@ import shlex
 import sys
 from functools import lru_cache
 
+
+def norm_path(path: str) -> str:
+    """Strip a leading ~ so remote paths resolve under the home directory.
+
+    run_command sets CWD to $HOME, so relative paths already resolve there.
+    shlex.quote wraps in single quotes which suppresses tilde expansion, so
+    ~/foo must become foo before quoting; bare ~ becomes '.'.
+    """
+    if path == "~":
+        return "."
+    if path.startswith("~/"):
+        return path[2:]
+    return path
+
+
+def quote_path(path: str) -> str:
+    """shlex.quote a remote path after normalizing a leading ~."""
+    return shlex.quote(norm_path(path))
+
 from remotemanager import Computer
 
 from rikyu_mcp import config
@@ -63,6 +82,7 @@ def write_remote_file(path: str, content: str) -> str:
     Relative paths resolve against the home directory. Returns the absolute
     path of the written file; raises on failure.
     """
+    path = norm_path(path)
     encoded = base64.b64encode(content.encode()).decode()
     quoted = shlex.quote(path)
     output = run_command(
