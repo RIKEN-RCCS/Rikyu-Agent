@@ -324,9 +324,12 @@ re-decide it against *this* machine's capabilities (the ones you noted in Phase 
   `nvidia-smi` GPU helper on a GPU-first machine) may be pointless on the target
   (a CPU-first machine) — don't carry it just because it was there.
 
-Process: go through `IRI_CHECKLIST.md` (and `openapi.json`) row by row, and for
-each endpoint decide implement / defer for the target — updating the verdict and
-note, and implementing the endpoints that newly apply. Mark the source-vs-target
+Process: the reference IRI spec is **not committed** (it is ALCF's, with no
+redistribution license) — fetch a working copy first:
+`curl -s https://api.alcf.anl.gov/openapi.json -o openapi.json` (git-ignored).
+Then go through `IRI_CHECKLIST.md` (and that spec) row by row, and for each
+endpoint decide implement / defer for the target — updating the verdict and note,
+and implementing the endpoints that newly apply. Mark the source-vs-target
 difference in the note so the decision is auditable.
 
 ---

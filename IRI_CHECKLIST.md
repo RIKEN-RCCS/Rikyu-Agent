@@ -1,7 +1,8 @@
 # IRI Facility API coverage checklist
 
 Tracks how far `rikyu-hpc` covers the [IRI Facility API](https://api.alcf.anl.gov/)
-(ALCF implementation, spec at `openapi.json`). Each IRI endpoint maps to an MCP
+(ALCF implementation, spec at api.alcf.anl.gov/openapi.json — not committed; fetch
+it when needed, see AGENTS.md). Each IRI endpoint maps to an MCP
 tool executed on AI4S over SSH via remotemanager — there is no REST service;
 we emulate the API's shape and semantics.
 
@@ -90,7 +91,7 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 
 ## Known deviations from the IRI/PSI-J schemas
 
-Verified against `openapi.json` (fetched 2026-06-12 from api.alcf.anl.gov).
+Verified against the ALCF IRI spec (fetched 2026-06-12 from api.alcf.anl.gov/openapi.json).
 
 ### JobAttributes
 

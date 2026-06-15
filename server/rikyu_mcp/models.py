@@ -1,7 +1,7 @@
 """Data models mirroring the IRI Facility API schemas.
 
 The IRI (Integrated Research Infrastructure) Facility API is the DOE
-standard for programmatic facility access (see openapi.json / api.alcf.anl.gov).
+standard for programmatic facility access (spec at api.alcf.anl.gov/openapi.json).
 Its compute schemas follow PSI/J: a JobSpec with ResourceSpec + JobAttributes,
 and a normalized JobState. We implement a pragmatic subset; deviations are
 noted in IRI_CHECKLIST.md at the repository root.

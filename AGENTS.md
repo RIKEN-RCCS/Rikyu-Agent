@@ -6,13 +6,16 @@ See README.md for the user-facing overview.
 
 ## Design rules (read before changing code)
 
-- **The `rikyu-hpc` tool surface mirrors the IRI Facility API** (DOE standard;
-  spec in `openapi.json`). Before adding, renaming, or removing a tool,
-  check `IRI_CHECKLIST.md` — new tools should map to an IRI endpoint and the
-  checklist must be updated. Extensions with no IRI counterpart (like
-  `run_command_on_cluster`) are allowed but must be marked as such. When porting,
-  **re-decide coverage per machine** — the checklist verdicts are machine-specific
-  (an endpoint can be implementable on one machine and not another); see PORTING.md.
+- **The `rikyu-hpc` tool surface mirrors the IRI Facility API** (DOE standard).
+  The reference spec is **not committed** (it is ALCF's, with no redistribution
+  license); fetch a working copy when you need it for coverage work —
+  `curl -s https://api.alcf.anl.gov/openapi.json -o openapi.json` (git-ignored).
+  Before adding, renaming, or removing a tool, check `IRI_CHECKLIST.md` — new
+  tools should map to an IRI endpoint and the checklist must be updated.
+  Extensions with no IRI counterpart (like `run_command_on_cluster`) are allowed
+  but must be marked as such. When porting, **re-decide coverage per machine** —
+  the checklist verdicts are machine-specific (an endpoint can be implementable on
+  one machine and not another); see PORTING.md.
 - **All cluster interaction goes through `server/rikyu_mcp/middleware.py`**
   (`run_command` / `write_remote_file`). Never shell out to ssh directly from
   tool code. Middleware enforces three conventions in one place: commands run
@@ -93,7 +96,6 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
 .claude-plugin/        plugin + marketplace manifests
 .mcp.json              server launch config (via server/run.sh, auto-venv)
 IRI_CHECKLIST.md       API coverage tracker — keep in sync with hpc_server.py
-openapi.json           IRI Facility API spec (live from api.alcf.anl.gov/openapi.json)
 server/rikyu_mcp/
   middleware.py        SSH layer — the only place that talks to the cluster
   models.py            PSI/J-style schemas + Slurm state normalization
