@@ -9,6 +9,8 @@ Three conventions are enforced in one place:
   users expect.
 - Commands and file contents travel base64-encoded, so arbitrary quoting
   survives the SSH layer intact.
+- Non-zero exit codes raise RuntimeError so FastMCP surfaces a clean tool
+  error; callers never need to parse error text from the return value.
 """
 import base64
 import contextlib
@@ -55,8 +57,10 @@ def get_frontend() -> Computer:
 
 
 def run_command(cmd: str) -> str:
-    """Run a shell command on the login node; return combined stdout+stderr.
+    """Run a shell command on the login node; return stdout.
 
+    Raises RuntimeError on non-zero exit so callers receive a clean MCP tool
+    error rather than having to parse error text from the output.
     Output beyond OUTPUT_LIMIT_BYTES is truncated with a marker.
     """
     payload = 'cd "$HOME" && ' + cmd
@@ -67,9 +71,10 @@ def run_command(cmd: str) -> str:
         result = get_frontend().cmd(
             f"echo {encoded} | base64 -d | bash -l", raise_errors=False,
         )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(detail or f"command exited with code {result.returncode}")
     output = result.stdout or ""
-    if result.stderr:
-        output = f"{output}\n{result.stderr}" if output else result.stderr
     if len(output) > OUTPUT_LIMIT_BYTES:
         output = (output[:OUTPUT_LIMIT_BYTES]
                   + f"\n[output truncated at {OUTPUT_LIMIT_BYTES} bytes]")
