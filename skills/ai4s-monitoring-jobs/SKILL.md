@@ -1,5 +1,5 @@
 ---
-name: monitoring-jobs
+name: ai4s-monitoring-jobs
 description: Use when the user asks about the status, progress, output, history, or failure of jobs on the AI4S supercomputer / rikyu cluster, or about queue and node availability.
 ---
 

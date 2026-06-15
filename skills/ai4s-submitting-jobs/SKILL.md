@@ -1,5 +1,5 @@
 ---
-name: submitting-jobs
+name: ai4s-submitting-jobs
 description: Use when the user wants to run, submit, or launch a job (training, computation, benchmark) on the AI4S supercomputer / rikyu cluster. Covers partition selection, JobSpec construction, submission, and interactive sessions.
 ---
 

@@ -12,7 +12,7 @@ In Claude Code:
 /reload-plugins
 ```
 
-Then run `/demo` to verify the connection end-to-end.
+Then run `/ai4s-demo` to verify the connection end-to-end.
 
 ## Configuration
 

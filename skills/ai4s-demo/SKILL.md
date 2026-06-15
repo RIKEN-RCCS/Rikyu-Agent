@@ -1,6 +1,6 @@
 ---
-name: demo
-description: Interactive demo of RikyuAgent — walks through facility info, live cluster status, docs search, filesystem access, and job submission on the RIKEN AI4S supercomputer. User-invocable with /demo.
+name: ai4s-demo
+description: Interactive demo of RikyuAgent — walks through facility info, live cluster status, docs search, filesystem access, and job submission on the RIKEN AI4S supercomputer. User-invocable with /ai4s-demo.
 ---
 
 # RikyuAgent demo
@@ -131,4 +131,4 @@ Summarize what just happened in 5 bullet points:
 - Bare-metal job submitted, ran, GPU output retrieved
 - Container job ran inside Ubuntu on the same GB200 hardware
 
-Then say: *"From here you can submit real workloads with /submitting-jobs, monitor them with /monitoring-jobs, or ask anything about the cluster."*
+Then say: *"From here you can submit real workloads with /ai4s-submitting-jobs, monitor them with /ai4s-monitoring-jobs, or ask anything about the cluster."*

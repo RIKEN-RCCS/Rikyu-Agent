@@ -1,5 +1,5 @@
 ---
-name: configuring
+name: ai4s-configuring
 description: Use when the user wants to set up, configure, or troubleshoot RikyuAgent — SSH access to the AI4S cluster, the embedding endpoint for docs search (RAG), or the ~/.rikyu/config.json file. Also use when rikyu tools fail with connection or embedding errors.
 ---
 

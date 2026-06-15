@@ -83,7 +83,7 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
 - Test the plugin in Claude Code:
   `/plugin marketplace add <repo-path>` → `/plugin install rikyu@rikyu-marketplace`.
 - User settings live in `~/.rikyu/config.json` (may contain an embedding API
-  key — never commit it, never echo the key). The `configuring` skill
+  key — never commit it, never echo the key). The `ai4s-configuring` skill
   documents the schema.
 - The docs RAG indexes https://github.com/RIKEN-RCCS/ai4s_early_access
   (markdown source of the official guide). The embedding endpoint is any
@@ -107,5 +107,7 @@ server/rikyu_mcp/
   serving.py           shared CLI entry point
 data/ai4s_config.json  static cluster facts served by get_facility
 data/docs_index/       committed docs index (chunks.json [+ embeddings.npy])
-skills/                configuring, submitting-jobs, monitoring-jobs, ai4s-reference
+skills/                ai4s-configuring, ai4s-submitting-jobs, ai4s-monitoring-jobs,
+                       ai4s-reference, ai4s-demo (machine-prefixed so this and the
+                       hokusai plugin can be installed at once without collisions)
 ```
