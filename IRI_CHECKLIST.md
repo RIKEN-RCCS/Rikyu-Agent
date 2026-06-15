@@ -5,6 +5,12 @@ Tracks how far `rikyu-hpc` covers the [IRI Facility API](https://api.alcf.anl.go
 tool executed on AI4S over SSH via remotemanager — there is no REST service;
 we emulate the API's shape and semantics.
 
+**The verdicts below are specific to AI4S.** When porting to a new machine,
+re-decide every row against what *that* machine can do — the same endpoint can be
+implementable on one machine and not another (e.g. the `project_allocations`
+endpoints are deferred here, but implementable on a machine with core-time
+accounting like HOKUSAI BigWaterfall2's `listcpu`).
+
 Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 
 ## facility

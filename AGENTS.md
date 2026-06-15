@@ -10,7 +10,9 @@ See README.md for the user-facing overview.
   spec in `openapi.json`). Before adding, renaming, or removing a tool,
   check `IRI_CHECKLIST.md` — new tools should map to an IRI endpoint and the
   checklist must be updated. Extensions with no IRI counterpart (like
-  `run_command_on_cluster`) are allowed but must be marked as such.
+  `run_command_on_cluster`) are allowed but must be marked as such. When porting,
+  **re-decide coverage per machine** — the checklist verdicts are machine-specific
+  (an endpoint can be implementable on one machine and not another); see PORTING.md.
 - **All cluster interaction goes through `server/rikyu_mcp/middleware.py`**
   (`run_command` / `write_remote_file`). Never shell out to ssh directly from
   tool code. Middleware enforces three conventions in one place: commands run
