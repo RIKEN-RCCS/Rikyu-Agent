@@ -68,11 +68,25 @@ def run_command(cmd: str) -> str:
     # remotemanager may print progress to stdout, which would corrupt the
     # MCP stdio transport — divert anything it emits.
     with contextlib.redirect_stdout(sys.stderr):
-        result = get_frontend().cmd(
-            f"echo {encoded} | base64 -d | bash -l", raise_errors=False,
-        )
+        try:
+            result = get_frontend().cmd(
+                f"echo {encoded} | base64 -d | bash -l", raise_errors=False,
+            )
+        except Exception as exc:
+            if not config.CONFIG_PATH.exists():
+                raise RuntimeError(
+                    "Plugin not configured — run the 'ai4s-configuring' skill to "
+                    f"create {config.CONFIG_PATH}."
+                ) from exc
+            raise
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
+        if not config.CONFIG_PATH.exists():
+            raise RuntimeError(
+                "Plugin not configured — run the 'ai4s-configuring' skill to "
+                f"create {config.CONFIG_PATH}."
+                + (f" SSH error: {detail}" if detail else "")
+            )
         raise RuntimeError(detail or f"command exited with code {result.returncode}")
     output = result.stdout or ""
     if len(output) > OUTPUT_LIMIT_BYTES:
