@@ -37,5 +37,4 @@ For documentation search, add your API key for the shared RIKEN embedding servic
 }
 ```
 
-The env var `RIKYU_EMBED_API_KEY` overrides the file. With the key, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content. If you also use the HokusaiAgent plugin, `RCCS_EMBED_API_KEY` works for both.
-
+The env var `RCCS_EMBED_API_KEY` sets the key. With it, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content.
