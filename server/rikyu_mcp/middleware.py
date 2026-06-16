@@ -81,14 +81,15 @@ def run_command(cmd: str) -> str:
     return output
 
 
-def write_remote_file(path: str, content: str) -> str:
-    """Write a text file on the cluster, creating parent directories.
+def write_remote_file(path: str, content: str | bytes) -> str:
+    """Write a file on the cluster, creating parent directories.
 
     Relative paths resolve against the home directory. Returns the absolute
     path of the written file; raises on failure.
     """
     path = norm_path(path)
-    encoded = base64.b64encode(content.encode()).decode()
+    raw = content if isinstance(content, bytes) else content.encode()
+    encoded = base64.b64encode(raw).decode()
     quoted = shlex.quote(path)
     output = run_command(
         f'mkdir -p "$(dirname {quoted})" && '

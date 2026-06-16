@@ -270,12 +270,25 @@ def fs_mkdir(path: str) -> str:
 
 
 @mcp.tool()
-def fs_upload(path: str, content: str) -> str:
-    """Write a text file on the cluster, creating parent directories.
-    (IRI: POST /filesystem/upload)
+def fs_upload(path: str, content: str, binary: bool = False) -> str:
+    """Write a file on the cluster, creating parent directories.
+    (IRI: POST /filesystem/upload — max 5 MB)
+
+    For text files pass the content directly (binary=False, the default).
+    For binary files pass the content as base64 and set binary=True; it will
+    be decoded before writing. Use fs_compress + fs_download for files over 5 MB.
     """
-    abs_path = write_remote_file(path, content)
-    return f"Wrote {len(content)} bytes to {abs_path}"
+    import base64 as _b64
+    raw: str | bytes
+    if binary:
+        raw = _b64.b64decode(content)
+    else:
+        raw = content
+    size = len(raw) if isinstance(raw, bytes) else len(raw.encode())
+    if size > 5 * 1024 * 1024:
+        raise ValueError(f"Content is {size:,} bytes — exceeds 5 MB upload limit.")
+    abs_path = write_remote_file(path, raw)
+    return f"Wrote {size:,} bytes to {abs_path}"
 
 
 @mcp.tool()
