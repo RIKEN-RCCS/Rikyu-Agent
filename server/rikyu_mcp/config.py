@@ -50,11 +50,17 @@ EMBED_MODEL = "bge-m3:567m"
 def embed_api_key() -> str:
     """API key for the embedding endpoint (the only user-configurable embedding setting).
 
-    Override via RIKYU_EMBED_API_KEY or embedding.api_key in the config file.
-    Empty string means no auth header is sent.
+    Resolved in order: RIKYU_EMBED_API_KEY, then RCCS_EMBED_API_KEY, then
+    embedding.api_key in the config file. RCCS_EMBED_API_KEY is a shared fallback:
+    the embedding endpoint is common RIKEN R-CCS infrastructure, so a user running
+    several R-CCS plugins (e.g. this and the HOKUSAI plugin) can export the one key
+    once instead of repeating it in each plugin's config. Empty string means no
+    auth header is sent.
     """
     file = _file_config().get("embedding", {})
-    return os.environ.get("RIKYU_EMBED_API_KEY") or file.get("api_key") or ""
+    return (os.environ.get("RIKYU_EMBED_API_KEY")
+            or os.environ.get("RCCS_EMBED_API_KEY")
+            or file.get("api_key") or "")
 
 
 # --- Static data ------------------------------------------------------------
