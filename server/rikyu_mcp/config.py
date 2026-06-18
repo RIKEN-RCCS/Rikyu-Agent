@@ -65,7 +65,14 @@ def embed_api_key() -> str:
 
 # --- Static data ------------------------------------------------------------
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+# Prefer CLAUDE_PLUGIN_ROOT (set by the Claude Code plugin system at runtime)
+# so data is found regardless of install layout. Fall back to __file__-relative
+# for development runs directly from the source tree.
+_DATA_DIR = (
+    Path(os.environ["CLAUDE_PLUGIN_ROOT"]) / "data"
+    if "CLAUDE_PLUGIN_ROOT" in os.environ
+    else Path(__file__).resolve().parent.parent.parent / "data"
+)
 
 DOCS_INDEX_DIR = Path(os.environ.get("RIKYU_DOCS_INDEX", _DATA_DIR / "docs_index"))
 DOCS_REPO_URL = "https://github.com/RIKEN-RCCS/ai4s_early_access"
