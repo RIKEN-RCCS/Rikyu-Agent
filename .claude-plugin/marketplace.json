@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "rikyu",
-      "source": "./",
+      "source": "./plugins/rikyu",
       "description": "Slurm job management and documentation search for the RIKEN AI4S supercomputer."
     }
   ]
