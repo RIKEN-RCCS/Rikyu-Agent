@@ -69,10 +69,10 @@ and `<host>` with your target platform (`claude-code`, `codex`, `cursor`,
 pip install hatch-xclam
 
 hatch mcp configure rikyu-hpc --host <host> \
-  --command uv --args "run" "--directory" "/path/to/Rikyu-Agent/server" "rikyu-hpc-mcp"
+  --command uv --args "run --directory /path/to/Rikyu-Agent/server rikyu-hpc-mcp"
 
 hatch mcp configure rikyu-docs --host <host> \
-  --command uv --args "run" "--directory" "/path/to/Rikyu-Agent/server" "rikyu-docs-mcp"
+  --command uv --args "run --directory /path/to/Rikyu-Agent/server rikyu-docs-mcp"
 ```
 
 To replicate the same configuration to additional hosts:
