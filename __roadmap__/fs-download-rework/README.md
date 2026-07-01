@@ -28,7 +28,7 @@ graph TD
     config_and_paths[Config download_dir + local path safety]:::done
     transfer_scaffold[transfer.py scaffold: dispatch, TransferResult, checksums]:::done
     transports[Transport implementations]:::inprogress
-    decouple_ssh_helpers[Decouple transfer helpers from remotemanager (direct ssh)]:::inprogress
+    decouple_ssh_helpers[Decouple transfer helpers from remotemanager (direct ssh)]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -42,7 +42,7 @@ graph TD
 | `config_and_paths.md` | 📄 Leaf Task | ✅ Done |
 | `transfer_scaffold.md` | 📄 Leaf Task | ✅ Done |
 | `transports/` | 📁 Directory | 🔄 In Progress |
-| `decouple_ssh_helpers.md` | 📄 Leaf Task | 🔄 In Progress |
+| `decouple_ssh_helpers.md` | 📄 Leaf Task | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
