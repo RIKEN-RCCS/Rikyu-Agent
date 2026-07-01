@@ -35,6 +35,13 @@ def check_ssh() -> bool:
         output = run_command("echo rikyu-ok && hostname")
     except Exception as e:
         print(f"{FAIL} ssh ({host}): {e}")
+        if "rsync version" in str(e):
+            print(f"  {WARN} remotemanager requires rsync >= 3.0 on PATH (it version-checks "
+                  "rsync even for plain SSH commands). Install a modern rsync and put it "
+                  "first on PATH — e.g. on macOS `brew install rsync` then ensure "
+                  "/opt/homebrew/bin precedes /usr/bin. In an MCP host, set this via the "
+                  "server's env/PATH config. (fs_download itself still works via its "
+                  "scp/base64 fallbacks.)")
         return False
     if "rikyu-ok" not in output:
         print(f"{FAIL} ssh ({host}): unexpected response: {output[:200]}")
