@@ -89,3 +89,56 @@ def load_cluster_config() -> dict:
     path = Path(os.environ.get("RIKYU_CLUSTER_CONFIG", _DATA_DIR / "rikyu_config.json"))
     with open(path) as f:
         return json.load(f)
+
+
+# --- Local filesystem paths --------------------------------------------------
+
+def download_dir() -> Path:
+    """Local directory that downloaded files land in when no explicit path is given.
+
+    Resolved in order: RIKYU_DOWNLOAD_DIR, then local.download_dir in the config
+    file, then the current working directory. Always returned as an absolute,
+    expanded Path.
+    """
+    raw = (os.environ.get("RIKYU_DOWNLOAD_DIR")
+           or _file_config().get("local", {}).get("download_dir")
+           or str(Path.cwd()))
+    return Path(raw).expanduser().resolve()
+
+
+def resolve_local_dest(remote_path: str, local_path: str | None) -> Path:
+    """Decide the local filesystem destination for a file downloaded from the cluster.
+
+    If local_path is None, the file lands in download_dir() under the remote
+    file's basename. Otherwise local_path is treated as a directory (if it
+    already exists as one, or ends with a path separator) and the remote
+    basename is appended, or as the full destination path otherwise. The
+    parent directory is created if missing.
+
+    If the config file sets a truthy local.sandbox, the resolved destination
+    must stay inside download_dir(); ValueError is raised if it would escape.
+    """
+    basename = os.path.basename(remote_path.rstrip("/"))
+
+    if local_path is None:
+        dest = download_dir() / basename
+    else:
+        expanded = Path(local_path).expanduser()
+        if not expanded.is_absolute():
+            expanded = Path.cwd() / expanded
+        if expanded.is_dir() or local_path.endswith(os.sep):
+            dest = expanded / basename
+        else:
+            dest = expanded
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    if _file_config().get("local", {}).get("sandbox"):
+        sandbox_root = download_dir().resolve()
+        if not dest.resolve().is_relative_to(sandbox_root):
+            raise ValueError(
+                f"Refusing to write outside the sandboxed download directory "
+                f"{sandbox_root}: resolved destination {dest.resolve()}"
+            )
+
+    return dest.resolve()
