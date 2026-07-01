@@ -3,17 +3,18 @@
 This module holds the pluggable skeleton shared by every download transport
 (scp, sftp, base64-over-ssh, rsync, ...). Each transport is added later via
 ``@register("name")`` on a function that knows how to land bytes at a local
-destination; this module itself never picks a transport and never imports
-``config`` — callers resolve paths and transport choice before reaching here.
+destination; this module itself never picks a transport and does not depend on
+the local-path *policy* in ``config`` (download_dir/resolve_local_dest) —
+callers resolve destination paths and the transport choice before reaching
+here. It does read ``config.ssh_host()`` (lazily) to know which host to ssh to.
 """
-import contextlib
 import hashlib
-import sys
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from rikyu_mcp.middleware import get_frontend, quote_path, run_command
+from rikyu_mcp.middleware import quote_path
 
 # Streamed read size for local checksumming.
 _CHUNK_BYTES = 1024 * 1024
@@ -95,10 +96,33 @@ def download_file(remote_path: str, local_dest: Path, transport: str) -> Transfe
     )
 
 
+def _ssh_argv(host: str, cmd: str) -> list[str]:
+    """Argv for running `cmd` on `host` over a batch-mode ssh, home-relative."""
+    return ["ssh", "-o", "BatchMode=yes", host, f"cd $HOME && {cmd}"]
+
+
+def _ssh_capture(cmd: str) -> str:
+    """Run `cmd` on the login node over a direct ssh subprocess; return stdout.
+
+    Bypasses remotemanager entirely: remotemanager builds an rsync transport
+    and version-checks it (>=3.0) at Computer construction, which fails on
+    hosts with older/BSD rsync (e.g. macOS openrsync) even for a plain command.
+    A direct ssh subprocess needs only OpenSSH, which is universal.
+    """
+    from rikyu_mcp import config
+
+    proc = subprocess.run(
+        _ssh_argv(config.ssh_host(), cmd),
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or f"ssh exited {proc.returncode}")
+    return proc.stdout
+
+
 def remote_sha256(path: str) -> str:
     """SHA-256 of a file on the login node, via `sha256sum`."""
-    output = run_command(f"sha256sum {quote_path(path)}")
-    return output.split()[0]
+    return _ssh_capture(f"sha256sum {quote_path(path)}").split()[0]
 
 
 def local_sha256(path: Path) -> str:
@@ -111,19 +135,16 @@ def local_sha256(path: Path) -> str:
 
 
 def run_capture(cmd: str) -> str:
-    """Run a login-node command via get_frontend().cmd(...), returning full stdout.
+    """Run a login-node command over direct ssh, returning the FULL stdout.
 
-    Unlike middleware.run_command, this does NOT truncate output at
-    OUTPUT_LIMIT_BYTES — that 200 KB cap is the very bug this transfer
-    campaign exists to fix. Transports that need raw, complete stdout (e.g.
-    base64-encoded file bodies) should call this instead.
+    Two reasons this exists rather than reusing middleware.run_command:
+    - it does NOT truncate output at OUTPUT_LIMIT_BYTES — that 200 KB cap is
+      the very bug this transfer campaign exists to fix (it silently corrupts
+      base64 bodies of files larger than ~146 KB);
+    - it avoids remotemanager's rsync>=3.0 version gate, so transports like
+      base64 work even where a modern rsync is not on PATH.
     """
-    with contextlib.redirect_stdout(sys.stderr):
-        result = get_frontend().cmd(cmd, raise_errors=False)
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout or "").strip()
-        raise RuntimeError(detail or f"command exited with code {result.returncode}")
-    return result.stdout or ""
+    return _ssh_capture(cmd)
 
 
 @register("_noop")
