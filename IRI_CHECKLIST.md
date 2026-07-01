@@ -68,7 +68,7 @@ Legend: ✅ implemented · 🔜 planned next · ❌ deferred (with reason)
 | GET /filesystem/tail | `fs_tail` | ✅ | Primary way to read job output |
 | POST /filesystem/mkdir | `fs_mkdir` | ✅ | |
 | POST /filesystem/upload | `fs_upload` | ✅ | Text content via MCP (IRI uses multipart; binary deferred) |
-| GET /filesystem/download | `fs_download` | ✅ | Base64-encoded content; 5 MB cap matching IRI spec; suggests scp for larger files |
+| GET /filesystem/download | `fs_download` | ⚠️ deviation | **Deliberately diverges from the IRI base64 shape.** IRI returns base64 in the response body; for an LLM agent that routes file bytes through the model context — which caused real tool-call failures (sub-5 MB files exceeding the ~10k-token tool-output cap) plus a silent >146 KB corruption bug (200 KB `run_command` truncation). Instead, `fs_download(path, local_path=None, transport=None)` transfers host→local disk (rsync/scp/base64, configurable default) and returns metadata only `{local_path, bytes, sha256, verified, transport}`. No size cap. See `__reports__/fs-download-rework/findings.md`. |
 | GET /filesystem/checksum | `fs_checksum` | ✅ | `sha256sum` |
 | POST /filesystem/mv | `fs_mv` | ✅ | `mv`; docstring notes it is destructive |
 | POST /filesystem/cp | `fs_cp` | ✅ | `cp -r` |

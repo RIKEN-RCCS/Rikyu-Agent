@@ -61,9 +61,29 @@ async def hpc_checks(submit: bool) -> None:
             await call(session, "fs_upload",
                        {"path": "/tmp/rikyu-smoke.txt", "content": "smoke test\n"})
             csum1 = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke.txt"})
-            b64 = await call(session, "fs_download", {"path": "/tmp/rikyu-smoke.txt"})
-            import base64
-            assert base64.b64decode(b64.strip()).decode() == "smoke test\n", "download content mismatch"
+            # fs_download now writes to LOCAL disk and returns metadata only
+            # (never the file bytes). Verify the local copy matches the remote.
+            import tempfile
+            dl_dir = tempfile.mkdtemp(prefix="rikyu-smoke-dl-")
+            meta = json.loads(await call(session, "fs_download",
+                       {"path": "/tmp/rikyu-smoke.txt",
+                        "local_path": f"{dl_dir}/rikyu-smoke.txt"}))
+            assert meta["verified"], f"download not verified: {meta}"
+            assert meta["sha256"] == csum1.split()[0], "download checksum mismatch"
+            assert Path(meta["local_path"]).read_text() == "smoke test\n", "download content mismatch"
+            # >146 KB case: the old base64/run_command download path silently
+            # truncated (and corrupted) files past ~146 KB — the new path must
+            # round-trip. Create the fixture server-side (fs_upload sends
+            # content inline and can't carry large payloads — the mirror
+            # problem tracked separately).
+            await call(session, "run_command_on_cluster",
+                       {"command": "head -c 204800 /dev/urandom > /tmp/rikyu-smoke-big.bin && echo made"})
+            big_csum = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke-big.bin"})
+            big_meta = json.loads(await call(session, "fs_download",
+                       {"path": "/tmp/rikyu-smoke-big.bin",
+                        "local_path": f"{dl_dir}/rikyu-smoke-big.bin"}))
+            assert big_meta["verified"] and big_meta["bytes"] == 200 * 1024, f"big download failed: {big_meta}"
+            assert big_meta["sha256"] == big_csum.split()[0], "big download checksum mismatch"
             await call(session, "fs_cp",
                        {"src": "/tmp/rikyu-smoke.txt", "dst": "/tmp/rikyu-smoke-copy.txt"})
             csum2 = await call(session, "fs_checksum", {"path": "/tmp/rikyu-smoke-copy.txt"})
