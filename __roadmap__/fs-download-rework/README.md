@@ -29,6 +29,7 @@ graph TD
     transfer_scaffold[transfer.py scaffold: dispatch, TransferResult, checksums]:::done
     transports[Transport implementations]:::done
     decouple_ssh_helpers[Decouple transfer helpers from remotemanager (direct ssh)]:::done
+    analysis[Analysis: plots + token scaling + findings artifact]:::inprogress
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -43,6 +44,7 @@ graph TD
 | `transfer_scaffold.md` | 📄 Leaf Task | ✅ Done |
 | `transports/` | 📁 Directory | ✅ Done |
 | `decouple_ssh_helpers.md` | 📄 Leaf Task | ✅ Done |
+| `analysis/` | 📁 Directory | 🔄 In Progress |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
