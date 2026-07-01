@@ -1,0 +1,55 @@
+{
+  "local": {
+    "rsync": {
+      "resolved": "/opt/homebrew/bin/rsync",
+      "shadowed": true,
+      "path_order": [
+        {
+          "path": "/opt/homebrew/bin/rsync",
+          "version_output": "rsync  version 3.4.4  protocol version 32\nCopyright (C) 1996-2026 by Andrew Tridgell, Wayne Davison, and others.\nWeb site: https://rsync.samba.org/\nCapabilities:\n    64-bit files, 64-bit inums, 64-bit timestamps, 64-bit long ints,\n    socketpairs, symlinks, symtimes, hardlinks, hardlink-specials,\n    hardlink-symlinks, IPv6, atimes, batchfiles, inplace, append, ACLs,\n    xattrs, optional secluded-args, iconv, no prealloc, stop-at, crtimes\nOptimizations:\n    no SIMD-roll, no asm-roll, openssl-crypto, no asm-MD5\nChecksum list:\n    xxh128 xxh3 xxh64 (xxhash) md5 md4 sha1 none\nCompress list:\n    zstd lz4 zlibx zlib none\nDaemon auth list:\n    sha512 sha256 sha1 md5 md4\n\nrsync comes with ABSOLUTELY NO WARRANTY.  This is free software, and you\nare welcome to redistribute it under certain conditions.  See the GNU\nGeneral Public Licence for details.",
+          "flavor": "GNU"
+        },
+        {
+          "path": "/usr/bin/rsync",
+          "version_output": "openrsync: protocol version 29\nrsync version 2.6.9 compatible",
+          "flavor": "openrsync"
+        },
+        {
+          "path": "/opt/homebrew/bin/rsync",
+          "version_output": "rsync  version 3.4.4  protocol version 32\nCopyright (C) 1996-2026 by Andrew Tridgell, Wayne Davison, and others.\nWeb site: https://rsync.samba.org/\nCapabilities:\n    64-bit files, 64-bit inums, 64-bit timestamps, 64-bit long ints,\n    socketpairs, symlinks, symtimes, hardlinks, hardlink-specials,\n    hardlink-symlinks, IPv6, atimes, batchfiles, inplace, append, ACLs,\n    xattrs, optional secluded-args, iconv, no prealloc, stop-at, crtimes\nOptimizations:\n    no SIMD-roll, no asm-roll, openssl-crypto, no asm-MD5\nChecksum list:\n    xxh128 xxh3 xxh64 (xxhash) md5 md4 sha1 none\nCompress list:\n    zstd lz4 zlibx zlib none\nDaemon auth list:\n    sha512 sha256 sha1 md5 md4\n\nrsync comes with ABSOLUTELY NO WARRANTY.  This is free software, and you\nare welcome to redistribute it under certain conditions.  See the GNU\nGeneral Public Licence for details.",
+          "flavor": "GNU"
+        }
+      ]
+    },
+    "scp": {
+      "resolved": "/usr/bin/scp",
+      "shadowed": false,
+      "path_order": [
+        {
+          "path": "/usr/bin/scp",
+          "version_output": "/usr/bin/scp: illegal option -- V\nusage: scp [-346ABCOpqRrsTv] [-c cipher] [-D sftp_server_path] [-F ssh_config]\n           [-i identity_file] [-J destination] [-l limit] [-o ssh_option]\n           [-P port] [-S program] [-X sftp_option] source ... target"
+        }
+      ]
+    },
+    "ssh": {
+      "resolved": "/usr/bin/ssh",
+      "shadowed": false,
+      "path_order": [
+        {
+          "path": "/usr/bin/ssh",
+          "version_output": "OpenSSH_10.2p1, LibreSSL 3.3.6"
+        }
+      ]
+    },
+    "remotemanager_computer": {
+      "ok": true,
+      "message": null
+    }
+  },
+  "remote": {
+    "host": "ai4s-r2",
+    "ok": true,
+    "returncode": 0,
+    "raw_output": "** WARNING: connection is not using a post-quantum key exchange algorithm.\n** This session may be vulnerable to \"store now, decrypt later\" attacks.\n** The server may need to be upgraded. See https://openssh.com/pq.html\nrsync  version 3.2.5  protocol version 31\nCopyright (C) 1996-2022 by Andrew Tridgell, Wayne Davison, and others.\nWeb site: https://rsync.samba.org/\nCapabilities:\n    64-bit files, 64-bit inums, 64-bit timestamps, 64-bit long ints,\n    socketpairs, symlinks, symtimes, hardlinks, hardlink-specials,\n    hardlink-symlinks, IPv6, atimes, batchfiles, inplace, append, ACLs,\n    xattrs, optional protect-args, iconv, prealloc, stop-at, no crtimes\nOptimizations:\n    no SIMD-roll, no asm-roll, openssl-crypto, no asm-MD5\nChecksum list:\n    md5 md4 none\nCompress list:\n    zstd lz4 zlibx zlib none\n\nrsync comes with ABSOLUTELY NO WARRANTY.  This is free software, and you\nare welcome to redistribute it under certain conditions.  See the GNU\nGeneral Public Licence for details.\nunknown option -- V\nLinux ar08n01-m.ai.r-ccs.riken.jp 5.14.0-611.54.1.el9_7.aarch64+64k #1 SMP PREEMPT_DYNAMIC Tue May 5 16:51:55 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux"
+  }
+}
