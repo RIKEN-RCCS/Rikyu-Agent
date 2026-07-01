@@ -16,7 +16,7 @@
 ```mermaid
 graph TD
     token_scaling[Base64 token-scaling-law experiment (local, tokenizer)]:::done
-    findings_report[Benchmark plots + writing-reports findings artifact]:::inprogress
+    findings_report[Benchmark plots + writing-reports findings artifact]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -28,7 +28,7 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `token_scaling.md` | 📄 Leaf Task | ✅ Done |
-| `findings_report.md` | 📄 Leaf Task | 🔄 In Progress |
+| `findings_report.md` | 📄 Leaf Task | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
