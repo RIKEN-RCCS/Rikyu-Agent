@@ -17,6 +17,7 @@
 graph TD
     rewrite_tool[Rewrite fs_download to new contract]:::planned
     tests_and_docs[Update smoke.py, IRI_CHECKLIST, docstrings]:::planned
+    deploy_rsync_env[Enforce rsync>=3.0 at deploy via MCP env/PATH config]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -29,6 +30,7 @@ graph TD
 |:-----|:-----|:-------|
 | `rewrite_tool.md` | 📄 Leaf Task | ⬜ Planned |
 | `tests_and_docs.md` | 📄 Leaf Task | ⬜ Planned |
+| `deploy_rsync_env.md` | 📄 Leaf Task | ⬜ Planned |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
