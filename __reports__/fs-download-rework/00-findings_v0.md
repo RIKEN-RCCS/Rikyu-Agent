@@ -80,3 +80,35 @@ Measured slope ≈ **0.90 tokens/byte** (~2.7× the naive `chars/4` estimate —
 - [wallclock.png](wallclock.png) · [token_scaling.png](token_scaling.png) · [token_scaling.csv](token_scaling.csv)
 - [portability.json](portability.json) — local/remote transfer tooling probe
 - `__roadmap__/fs-download-rework/` — full campaign roadmap
+
+---
+
+## Appendix A — Why base64 costs ~0.9 tokens per *file* byte
+
+The scaling plot is **log-log**, where any proportional relation `tokens = k · bytes¹` is a straight line of slope 1. It looks like `y = x` only because the constant `k ≈ 0.90` happens to be near 1 — the slope means *linear*, the offset carries the constant. So this is **not** "one token per character"; the real merge ratio is worse-than-text but not 1:1.
+
+**Measured merge ratio** (tiktoken `o200k_base`; random bytes ≈ the experiment's deterministic payload, confirming the payload is faithful):
+
+| stream | chars / token | tokens / char |
+|---|---|---|
+| base64 (random bytes) | 1.47 | 0.68 |
+| base64 (periodic payload used by the experiment) | 1.48 | 0.68 |
+| English prose (baseline) | 4.49 | 0.22 |
+
+tiktoken **does** merge base64, but only into mostly 1- and 2-character tokens (~1.5 chars each), versus ~4.5 for natural text. Example split of a base64 string:
+
+```
+'X','v','6','Y','/K','z','7','TA','u','DD','b','Ul','Bl','H','2','QD', ...
+lengths: 1,1,1,1,2,1,1,2,1,2,1,2,2,1,1,2   → mean ≈ 1.4 chars/token
+```
+
+**Decomposition of the 0.90 tokens/file-byte slope:**
+
+```
+tokens/file_byte  =  (b64_chars/file_byte) × (tokens/b64_char)
+      0.90         =        1.333 (= 4/3)    ×      0.68
+```
+
+The **1.33×** is base64's byte→char expansion; the **0.68** is the tokenizer's failure to merge base64. Because base64 carries only 6 bits of real data per character, each token ends up encoding only ~**9 bits** of actual file content (vs the tens of bits a token carries on natural text). That is the fundamental reason base64-in-context is unusable: it spends roughly one token per source byte, so the ~10k-token cap is exhausted by ~11.6 KiB.
+
+**Why BPE fails here:** the tokenizer learned its long merges from natural text and code; base64's 64-symbol alphabet in near-random order rarely matches those learned multi-character sequences, so it falls back to tiny tokens. (Reproduce the merge-ratio figures with `uv run python` + `tiktoken.get_encoding("o200k_base")` on `base64.b64encode(os.urandom(n))`.)
