@@ -15,10 +15,10 @@
 ## Status
 ```mermaid
 graph TD
-    t_base64[Enhanced base64 + local write]:::planned
-    t_remotemanager_rsync[RemoteManager rsync wrapper]:::planned
-    t_rsync_subprocess[Direct rsync subprocess]:::planned
-    t_scp_sftp[scp subprocess + optional paramiko SFTP]:::planned
+    t_base64[Enhanced base64 + local write]:::done
+    t_remotemanager_rsync[RemoteManager rsync wrapper]:::done
+    t_rsync_subprocess[Direct rsync subprocess]:::done
+    t_scp_sftp[scp subprocess + optional paramiko SFTP]:::done
     benchmark[Benchmark & verification]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -30,10 +30,10 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `t_base64.md` | 📄 Leaf Task | ⬜ Planned |
-| `t_remotemanager_rsync.md` | 📄 Leaf Task | ⬜ Planned |
-| `t_rsync_subprocess.md` | 📄 Leaf Task | ⬜ Planned |
-| `t_scp_sftp.md` | 📄 Leaf Task | ⬜ Planned |
+| `t_base64.md` | 📄 Leaf Task | ✅ Done |
+| `t_remotemanager_rsync.md` | 📄 Leaf Task | ✅ Done |
+| `t_rsync_subprocess.md` | 📄 Leaf Task | ✅ Done |
+| `t_scp_sftp.md` | 📄 Leaf Task | ✅ Done |
 | `benchmark/` | 📁 Directory | ⬜ Planned |
 
 ## Amendment Log
