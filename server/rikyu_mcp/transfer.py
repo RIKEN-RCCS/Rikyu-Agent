@@ -31,6 +31,26 @@ class TransferResult:
 
 
 _TRANSPORTS: dict[str, "Callable[[str, Path], None]"] = {}
+_discovered = False
+
+
+def _ensure_transports_loaded() -> None:
+    """Import every module in rikyu_mcp.transports so their @register calls run.
+
+    Done lazily (not at import time) to avoid a circular import: transport
+    modules import `register`/`run_capture` from this module.
+    """
+    global _discovered
+    if _discovered:
+        return
+    import importlib
+    import pkgutil
+
+    from rikyu_mcp import transports
+
+    for mod in pkgutil.iter_modules(transports.__path__):
+        importlib.import_module(f"rikyu_mcp.transports.{mod.name}")
+    _discovered = True
 
 
 def register(name: str) -> Callable[[Callable[[str, Path], None]], Callable[[str, Path], None]]:
@@ -54,6 +74,7 @@ def download_file(remote_path: str, local_dest: Path, transport: str) -> Transfe
     invokes the transport to land the bytes, then checksums the local copy
     and reports whether the two match.
     """
+    _ensure_transports_loaded()
     try:
         fn = _TRANSPORTS[transport]
     except KeyError:

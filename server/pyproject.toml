@@ -27,3 +27,8 @@ rikyu_mcp = [
     "data/*.json",
     "data/docs_index/*",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

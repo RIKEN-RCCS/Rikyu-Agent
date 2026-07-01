@@ -25,9 +25,9 @@ Replace base64-in-context `fs_download` with a host→local-disk transfer return
 ## Status
 ```mermaid
 graph TD
-    config_and_paths[Config download_dir + local path safety]:::inprogress
-    transfer_scaffold[transfer.py scaffold: dispatch, TransferResult, checksums]:::inprogress
-    transports[Transport implementations]:::planned
+    config_and_paths[Config download_dir + local path safety]:::done
+    transfer_scaffold[transfer.py scaffold: dispatch, TransferResult, checksums]:::done
+    transports[Transport implementations]:::inprogress
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -38,9 +38,9 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `config_and_paths.md` | 📄 Leaf Task | 🔄 In Progress |
-| `transfer_scaffold.md` | 📄 Leaf Task | 🔄 In Progress |
-| `transports/` | 📁 Directory | ⬜ Planned |
+| `config_and_paths.md` | 📄 Leaf Task | ✅ Done |
+| `transfer_scaffold.md` | 📄 Leaf Task | ✅ Done |
+| `transports/` | 📁 Directory | 🔄 In Progress |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |

@@ -9,3 +9,6 @@ server/dataset-*
 remotemanager.log
 # Third-party IRI spec (ALCF, no redistribution license) — fetch when needed (see AGENTS.md)
 openapi.json
+
+# transient per-leaf implementer worktrees (campaign execution)
+.agent-worktrees/
