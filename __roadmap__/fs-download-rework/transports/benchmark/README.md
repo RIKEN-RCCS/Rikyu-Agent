@@ -18,7 +18,7 @@ graph TD
     verify_transports[Verify all transports conform]:::done
     benchmark_harness[bench_download.py harness]:::done
     portability_probe[rsync/scp portability probe]:::done
-    finalize[Run experiments & productionize]:::planned
+    finalize[Run experiments & productionize]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -32,7 +32,7 @@ graph TD
 | `verify_transports.md` | 📄 Leaf Task | ✅ Done |
 | `benchmark_harness.md` | 📄 Leaf Task | ✅ Done |
 | `portability_probe.md` | 📄 Leaf Task | ✅ Done |
-| `finalize/` | 📁 Directory | ⬜ Planned |
+| `finalize/` | 📁 Directory | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |

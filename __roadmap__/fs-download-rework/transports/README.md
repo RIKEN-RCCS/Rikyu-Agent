@@ -19,7 +19,7 @@ graph TD
     t_remotemanager_rsync[RemoteManager rsync wrapper]:::done
     t_rsync_subprocess[Direct rsync subprocess]:::done
     t_scp_sftp[scp subprocess + optional paramiko SFTP]:::done
-    benchmark[Benchmark & verification]:::planned
+    benchmark[Benchmark & verification]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -34,7 +34,7 @@ graph TD
 | `t_remotemanager_rsync.md` | 📄 Leaf Task | ✅ Done |
 | `t_rsync_subprocess.md` | 📄 Leaf Task | ✅ Done |
 | `t_scp_sftp.md` | 📄 Leaf Task | ✅ Done |
-| `benchmark/` | 📁 Directory | ⬜ Planned |
+| `benchmark/` | 📁 Directory | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |

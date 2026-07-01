@@ -16,7 +16,7 @@
 ```mermaid
 graph TD
     experiments[Run sweep, pick default transport]:::done
-    productionize[Productionize fs_download]:::planned
+    productionize[Productionize fs_download]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -28,7 +28,7 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `experiments.md` | 📄 Leaf Task | ✅ Done |
-| `productionize/` | 📁 Directory | ⬜ Planned |
+| `productionize/` | 📁 Directory | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
