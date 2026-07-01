@@ -9,8 +9,7 @@ the default, then productionizes the tool. Consumers: the `rikyu-hpc` MCP server
 ports (banyan, dgx1).
 
 ## Goal
-Replace base64-in-context `fs_download` with a host→local-disk transfer returning metadata only, with
-the default transport chosen from a rigorous, good-citizen benchmark.
+Replace base64-in-context `fs_download` with a host→local-disk transfer returning metadata only, default transport chosen from a rigorous, good-citizen benchmark.
 
 ## Pre-conditions
 - [ ] `uv`-managed `server/` environment resolves (`uv sync`)
@@ -26,8 +25,8 @@ the default transport chosen from a rigorous, good-citizen benchmark.
 ## Status
 ```mermaid
 graph TD
-    config_and_paths[Config download_dir + local path safety]:::planned
-    transfer_scaffold[transfer.py scaffold: dispatch, TransferResult, checksums]:::planned
+    config_and_paths[Config download_dir + local path safety]:::inprogress
+    transfer_scaffold[transfer.py scaffold: dispatch, TransferResult, checksums]:::inprogress
     transports[Transport implementations]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -39,8 +38,8 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `config_and_paths.md` | 📄 Leaf Task | ⬜ Planned |
-| `transfer_scaffold.md` | 📄 Leaf Task | ⬜ Planned |
+| `config_and_paths.md` | 📄 Leaf Task | 🔄 In Progress |
+| `transfer_scaffold.md` | 📄 Leaf Task | 🔄 In Progress |
 | `transports/` | 📁 Directory | ⬜ Planned |
 
 ## Amendment Log
