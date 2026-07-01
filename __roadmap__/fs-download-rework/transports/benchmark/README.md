@@ -15,9 +15,9 @@
 ## Status
 ```mermaid
 graph TD
-    verify_transports[Verify all transports conform]:::planned
-    benchmark_harness[bench_download.py harness]:::planned
-    portability_probe[rsync/scp portability probe]:::planned
+    verify_transports[Verify all transports conform]:::done
+    benchmark_harness[bench_download.py harness]:::done
+    portability_probe[rsync/scp portability probe]:::done
     finalize[Run experiments & productionize]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -29,9 +29,9 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `verify_transports.md` | 📄 Leaf Task | ⬜ Planned |
-| `benchmark_harness.md` | 📄 Leaf Task | ⬜ Planned |
-| `portability_probe.md` | 📄 Leaf Task | ⬜ Planned |
+| `verify_transports.md` | 📄 Leaf Task | ✅ Done |
+| `benchmark_harness.md` | 📄 Leaf Task | ✅ Done |
+| `portability_probe.md` | 📄 Leaf Task | ✅ Done |
 | `finalize/` | 📁 Directory | ⬜ Planned |
 
 ## Amendment Log
