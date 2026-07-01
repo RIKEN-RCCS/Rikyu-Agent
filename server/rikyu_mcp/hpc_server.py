@@ -297,22 +297,62 @@ def fs_checksum(path: str) -> str:
     return run_command(f"sha256sum {quote_path(path)}")
 
 
-@mcp.tool()
-def fs_download(path: str) -> str:
-    """Download a small file from the cluster as base64. (IRI: GET /filesystem/download)
+# Auto-fallback order when no explicit transport is requested. rsync first
+# (fastest at scale, resume+checksum), scp next (universal with OpenSSH),
+# base64 last (needs only base64+ssh; fine for the small files where it's
+# actually fastest). rm_rsync is available on request but excluded here — it
+# was the slowest and failed at 100 MB in the benchmark.
+_DOWNLOAD_FALLBACK = ("rsync", "scp", "base64")
 
-    Capped at 5 MB (matching IRI spec). Use fs_compress first for larger files,
-    then download the archive. The caller can base64-decode and write locally.
+
+@mcp.tool()
+def fs_download(path: str, local_path: str | None = None,
+                transport: str | None = None) -> dict:
+    """Download a file from the cluster to the local machine.
+
+    Transfers the file's bytes host -> local disk directly and returns
+    metadata only — the file contents never enter the tool result (and thus
+    never the model's context). This deliberately deviates from IRI
+    GET /filesystem/download, which returns base64; see IRI_CHECKLIST.md for
+    the rationale (base64-in-context blew the tool-output token cap and a
+    200 KB truncation silently corrupted files >~146 KB).
+
+    path:       file on the cluster (relative paths resolve under $HOME).
+    local_path: where to write locally; when omitted, resolves under the
+                configured download dir using the remote basename.
+    transport:  force a specific transport (rsync/scp/base64/rm_rsync). When
+                omitted, uses the configured default and falls back through
+                rsync -> scp -> base64 if a transport is unavailable.
+
+    Returns {local_path, bytes, sha256, verified, transport}.
     """
-    size_out = run_command(f"stat -c %s {quote_path(path)}")
-    size = int(size_out.strip())
-    if size > 5 * 1024 * 1024:
-        raise ValueError(
-            f"File is {size:,} bytes — exceeds 5 MB limit. "
-            f"Compress it first with fs_compress, or transfer with: "
-            f"scp rikyu:{path} ."
-        )
-    return run_command(f"base64 {quote_path(path)}")
+    from dataclasses import asdict
+
+    from rikyu_mcp import transfer
+
+    dest = config.resolve_local_dest(path, local_path)
+
+    if transport is not None:
+        order = [transport]           # explicit choice is honored as-is
+    else:
+        default = config.download_transport()
+        order = [default] + [t for t in _DOWNLOAD_FALLBACK if t != default]
+
+    errors: dict[str, str] = {}
+    for name in order:
+        try:
+            result = transfer.download_file(path, dest, name)
+        except Exception as exc:      # transport unavailable / transfer failed
+            errors[name] = str(exc)
+            continue
+        if not result.verified:
+            errors[name] = "checksum mismatch"
+            continue
+        return asdict(result)
+
+    raise RuntimeError(
+        f"download of {path!r} failed for all attempted transports: {errors}"
+    )
 
 
 @mcp.tool()

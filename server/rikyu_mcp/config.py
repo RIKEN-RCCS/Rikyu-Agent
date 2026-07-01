@@ -45,6 +45,20 @@ def ssh_host() -> str:
             or "rikyu")
 
 
+def download_transport() -> str:
+    """Default transport for fs_download.
+
+    Resolved in order: RIKYU_DOWNLOAD_TRANSPORT, then local.download_transport
+    in the config file, then "rsync". The benchmark (see
+    __reports__/fs-download-rework/findings.md) found rsync fastest for large
+    files with resume+checksum; "scp" is an equally reasonable choice for
+    maximum universality. Switching the default is a config change, not code.
+    """
+    return (os.environ.get("RIKYU_DOWNLOAD_TRANSPORT")
+            or _file_config().get("local", {}).get("download_transport")
+            or "rsync")
+
+
 EMBED_BASE_URL = "http://llm.ai.r-ccs.riken.jp:11434/v1"
 EMBED_MODEL = "bge-m3:567m"
 
