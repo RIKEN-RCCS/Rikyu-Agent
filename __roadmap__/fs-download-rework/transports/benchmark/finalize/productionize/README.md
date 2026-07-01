@@ -15,7 +15,7 @@
 ## Status
 ```mermaid
 graph TD
-    rewrite_tool[Rewrite fs_download to new contract]:::planned
+    rewrite_tool[Rewrite fs_download to new contract]:::done
     tests_and_docs[Update smoke.py, IRI_CHECKLIST, docstrings]:::planned
     deploy_rsync_env[Enforce rsync>=3.0 at deploy via MCP env/PATH config]:::planned
     classDef done       fill:#166534,color:#bbf7d0
@@ -28,7 +28,7 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `rewrite_tool.md` | 📄 Leaf Task | ⬜ Planned |
+| `rewrite_tool.md` | 📄 Leaf Task | ✅ Done |
 | `tests_and_docs.md` | 📄 Leaf Task | ⬜ Planned |
 | `deploy_rsync_env.md` | 📄 Leaf Task | ⬜ Planned |
 
