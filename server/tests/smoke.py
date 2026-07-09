@@ -101,8 +101,8 @@ async def hpc_checks(submit: bool) -> None:
             container_spec = {
                 "name": "rikyu-container-test",
                 "executable": "cat /etc/os-release && uname -m",
-                "resources": {"node_count": 1, "gpus_per_node": 1},
-                "attributes": {"duration": "00:05:00", "queue_name": "1n1gpu"},
+                "resources": {"gpus": 1},
+                "attributes": {"duration": "00:05:00", "queue_name": "gpu"},
                 "container": {
                     "image": "$HOME/ubuntu-22.04.sif",
                 },
@@ -128,8 +128,8 @@ async def hpc_checks(submit: bool) -> None:
             spec_hold = {
                 "name": "rikyu-update-test",
                 "executable": "sleep 300",
-                "attributes": {"duration": "00:05:00", "queue_name": "1n1gpu"},
-                "resources": {"node_count": 1, "gpus_per_node": 1},
+                "attributes": {"duration": "00:05:00", "queue_name": "gpu"},
+                "resources": {"gpus": 1},
             }
             out_hold = await call(session, "submit_job", {"spec": spec_hold})
             hold_id = json.loads(out_hold)["job_id"]
@@ -139,9 +139,9 @@ async def hpc_checks(submit: bool) -> None:
 
             spec = {
                 "name": "rikyu-smoke",
-                "executable": "hostname && nvidia-smi -L && echo scratch: $USER_SCRATCH_DIR",
-                "attributes": {"duration": "00:05:00", "queue_name": "1n1gpu"},
-                "resources": {"node_count": 1, "gpus_per_node": 1},
+                "executable": "hostname && nvidia-smi -L && ls -ld /tmp",
+                "attributes": {"duration": "00:05:00", "queue_name": "gpu"},
+                "resources": {"gpus": 1},
             }
             out = await call(session, "submit_job", {"spec": spec})
             job_id = json.loads(out)["job_id"]

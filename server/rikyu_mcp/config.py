@@ -79,8 +79,7 @@ def _bundled_data_dir() -> Path:
 _DATA_DIR = _bundled_data_dir()
 
 DOCS_INDEX_DIR = Path(os.environ.get("RIKYU_DOCS_INDEX", _DATA_DIR / "docs_index"))
-DOCS_REPO_URL = "https://github.com/RIKEN-RCCS/ai4s_early_access"
-DOCS_SITE_BASE = "https://riken-rccs.github.io/ai4s_early_access/en/"
+DOCS_SOURCE = Path(os.environ.get("RIKYU_DOCS_SOURCE", _DATA_DIR / "rikyu_guide.md"))
 
 
 @lru_cache(maxsize=1)

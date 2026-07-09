@@ -297,8 +297,11 @@ This is where the machine's character lives.
 Only deviate from the shapes if the target scheduler has a concept that genuinely
 cannot be mapped (e.g. PBS's `-l nodes=1:ppn=4` has no direct IRI analogue), and
 document deviations in `IRI_CHECKLIST.md`. The GPU field is a per-site extension
-(`gpus_per_node` → `--gpus-per-node` on Rikyu; `gpus` → `--gpus` on HBW2); name it
-for the flag the machine actually uses.
+(`gpus` → `--gpus` on Rikyu and HBW2, a job-total count; other sites may instead
+need an untyped `--gres=gpu:N` or a per-node `--gpus-per-node=N`); name it for the
+flag the machine actually uses, and confirm against real job examples — Rikyu's
+own field was wrongly modeled as `--gpus-per-node` until the official docs made
+clear it's a single-partition, job-total `--gpus=N` request instead.
 
 `map_slurm_state()` must be replaced with `map_<scheduler>_state()` if not Slurm.
 The normalized states are fixed: `QUEUED`, `ACTIVE`, `COMPLETED`, `FAILED`,

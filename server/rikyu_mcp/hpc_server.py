@@ -35,11 +35,13 @@ def _check_resource(resource_id: str) -> None:
 
 @mcp.tool()
 def get_facility() -> dict:
-    """Describe the Rikyu facility: partitions, modules, storage, conventions.
+    """Describe the Rikyu facility: partition, GPU-count table, modules,
+    Spack, storage, conventions.
 
-    Static reference data (no SSH round-trip). On Rikyu the partition name
-    fixes the per-node resource share; jobs request GPUs with
-    --gpus-per-node. (IRI: GET /facility)
+    Static reference data (no SSH round-trip). Rikyu has a single GPU
+    partition; jobs request a total GPU count with --gpus (only 1, 2, 3, 4,
+    8, 12, or 16 are accepted), and Slurm derives the node count
+    automatically. (IRI: GET /facility)
     """
     return config.load_cluster_config()
 
@@ -151,9 +153,10 @@ def submit_job(spec: JobSpec, resource_id: str = RESOURCE_ID) -> dict:
 
     The spec is rendered as an sbatch script (kept under ~/.rikyu/jobs/ on
     the cluster for auditability) and submitted. Returns the job_id and the
-    script path. Rikyu notes: attributes.queue_name picks the partition,
-    which fixes the per-node resource share; resources.gpus_per_node must
-    not exceed that share; executable may be a shell line such as
+    script path. Rikyu notes: resources.gpus is the total GPU count for the
+    job (only 1, 2, 3, 4, 8, 12, or 16 are accepted) — Slurm derives the node
+    count automatically, so leave resources.node_count at its default unless
+    you need to override placement; executable may be a shell line such as
     'module load nvhpc && srun ./app'.
     """
     _check_resource(resource_id)

@@ -1,35 +1,48 @@
 {
   "cluster": "rikyu_cluster",
-  "login_host": "login01.ai.r-ccs.riken.jp",
+  "login_host": "login.rikyu.r-ccs.riken.jp",
   "architecture": "aarch64 (NVIDIA Grace)",
-  "gpu_type": "NVIDIA GB200",
+  "gpu_type": "NVIDIA GB200 NVL4 (2x Grace CPU + 4x B200 GPU per node)",
+  "node_count": 400,
   "notes": [
-    "The partition name fixes the per-node resource share: GPUs, CPUs (36 per GPU), and memory (400GB per GPU).",
-    "Request GPUs with --gpus-per-node, not --gres.",
-    "Default wall time is 12 hours if --time is omitted; maximum is 96 hours except on 4n4gpu-p (unlimited).",
-    "Compute nodes have ~7TB local NVMe scratch at $USER_SCRATCH_DIR, deleted automatically when the job ends.",
+    "There is a single GPU partition. Request a total GPU count with --gpus=N; do not use --gpus-per-node or --gres.",
+    "Only these GPU counts are accepted: 1, 2, 3, 4, 8, 12, 16. Slurm derives node_count automatically (4 GPUs/node); do not set --nodes unless overriding that default.",
+    "Each GPU brings a fixed share of the node: 36 CPU cores and ~400GB of combined CPU+GPU memory.",
+    "Max wall time is 96 hours regardless of GPU count.",
+    "Compute node scratch is /tmp (xfs, local, 1.5TB per requested GPU), deleted automatically when the job ends.",
     "Slurm commands require a login shell environment.",
     "Compute nodes are aarch64 — binaries and Python wheels built for x86_64 will not run."
   ],
+  "gpu_counts": [
+    {"gpus": 1,  "nodes": 1, "max_cpu_cores_per_node": 36,  "max_mem_gb_per_node": 400},
+    {"gpus": 2,  "nodes": 1, "max_cpu_cores_per_node": 72,  "max_mem_gb_per_node": 800},
+    {"gpus": 3,  "nodes": 1, "max_cpu_cores_per_node": 108, "max_mem_gb_per_node": 1200},
+    {"gpus": 4,  "nodes": 1, "max_cpu_cores_per_node": 144, "max_mem_gb_per_node": 1600},
+    {"gpus": 8,  "nodes": 2, "max_cpu_cores_per_node": 144, "max_mem_gb_per_node": 1600},
+    {"gpus": 12, "nodes": 3, "max_cpu_cores_per_node": 144, "max_mem_gb_per_node": 1600},
+    {"gpus": 16, "nodes": 4, "max_cpu_cores_per_node": 144, "max_mem_gb_per_node": 1600}
+  ],
   "partitions": [
-    {"name": "1n1gpu",   "default": true,  "max_nodes": 1, "gpus_per_node": 1, "cpus_per_node": 36,  "mem_per_node_gb": 400,  "max_time": "96:00:00", "qos": "gpu1"},
-    {"name": "1n2gpu",   "default": false, "max_nodes": 1, "gpus_per_node": 2, "cpus_per_node": 72,  "mem_per_node_gb": 800,  "max_time": "96:00:00", "qos": "gpu2"},
-    {"name": "1n4gpu",   "default": false, "max_nodes": 1, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu4"},
-    {"name": "2n4gpu",   "default": false, "max_nodes": 2, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu8"},
-    {"name": "4n4gpu",   "default": false, "max_nodes": 4, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": 1600, "max_time": "96:00:00", "qos": "gpu16"},
-    {"name": "4n4gpu-p", "default": false, "max_nodes": 4, "gpus_per_node": 4, "cpus_per_node": 144, "mem_per_node_gb": null, "max_time": "unlimited", "qos": "gpu16"}
+    {"name": "gpu", "default": true, "max_time": "96:00:00"}
   ],
   "modules": {
-    "nvhpc": "Standard NVHPC environment",
-    "nvhpc-nompi": "NVHPC without MPI; use when you manage MPI yourself",
-    "nvhpc-hpcx": "NVHPC with InfiniBand and HPC-X",
-    "nvhpc-hpcx-cuda13": "NVHPC with HPC-X and CUDA 13 fixed",
-    "nvhpc-byo-compiler": "Use the system GCC (bring your own compiler)",
-    "cuda": "Bare CUDA toolkit (11.8 or 13.2)"
+    "nvhpc": "Standard NVIDIA HPC SDK environment including MPI",
+    "nvhpc-nompi": "NVIDIA HPC SDK without MPI; use when you prepare and use another MPI yourself",
+    "nvhpc-hpcx": "nvhpc combined with HPC-X; use for HPC-X MPI in an InfiniBand/RDMA environment",
+    "nvhpc-hpcx-cuda13": "Same as nvhpc-hpcx but with the CUDA version fixed to CUDA 13",
+    "nvhpc-byo-compiler": "Use a compiler you prepare yourself, such as the system GCC ('Bring Your Own')"
+  },
+  "spack": {
+    "public_instance_setup": "/shared/software/spack-1.2.0/share/spack/setup-env.sh",
+    "commands": "spack find -x (list provided software); spack load <package>; spack unload <package>; spack info <package>",
+    "gpu_enabled_packages": ["petsc", "lammps", "quantum-espresso", "gromacs", "kokkos"],
+    "hpcx_mpi_enabled_packages": ["quantum-espresso", "gromacs"],
+    "private_instance_note": "Users may build a private Spack instance under $HOME and chain it to the public instance via upstreams.yaml to reuse prebuilt dependencies."
   },
   "storage": {
-    "home": "/home/<user>",
-    "node_local_scratch": "$USER_SCRATCH_DIR (~7TB NVMe, deleted after the job ends)"
+    "home": {"path": "/home/<user>", "quota": "5GB", "filesystem": "Lustre", "access": "owner only"},
+    "group": {"path": "/data1/<group>", "quota": "1TB per group", "filesystem": "Lustre", "access": "group members"},
+    "scratch": {"path": "/tmp", "quota": "1.5TB per requested GPU", "filesystem": "xfs", "access": "owner only, node-local, deleted at job end"}
   },
   "support": "rccs-ai4s-support [at] ml.riken.jp"
 }

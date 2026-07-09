@@ -2,7 +2,7 @@
 
 Claude Code and Codex plugin for the RIKEN **Rikyu** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
 
-Rikyu is a GPU-first system: 216 NVIDIA Grace + GB200 nodes (4 GPUs each, aarch64).
+Rikyu is a GPU-first system: 400 NVIDIA GB200 NVL4 nodes (2 Grace CPUs + 4 B200 GPUs each, aarch64).
 
 ## Configure
 

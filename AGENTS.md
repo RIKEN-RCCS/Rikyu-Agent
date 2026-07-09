@@ -43,35 +43,61 @@ README.md for the user-facing overview.
 ## Cluster facts
 
 - SSH destination comes from `~/.rikyu/config.json` (`ssh.host`, default
-  alias `rikyu`) → `login01.ai.r-ccs.riken.jp`. Key-based auth only — the
+  alias `rikyu`) → `login.rikyu.r-ccs.riken.jp`. Key-based auth only — the
   MCP server cannot answer password prompts.
-- Nodes are **aarch64** (NVIDIA Grace + GB200, 4 GPUs/node, 216 nodes).
-  x86_64 binaries and wheels do not run there.
-- The **partition fixes the per-node resource share** (1n1gpu … 4n4gpu-p;
-  36 CPUs + 400GB per GPU). Jobs use `--gpus-per-node`, never `--gres`.
-  Default walltime 12h, max 96h (4n4gpu-p unlimited).
-- `$USER_SCRATCH_DIR` = node-local NVMe (~7TB), deleted when the job ends.
+- Nodes are **aarch64** (NVIDIA GB200 NVL4: 2 Grace CPUs + 4 B200 GPUs per
+  node, 400 nodes). x86_64 binaries and wheels do not run there.
+- There is a **single GPU partition** (`gpu`). Jobs request a total GPU
+  count with `--gpus=N` — never `--gpus-per-node` or `--gres` — and only
+  1, 2, 3, 4, 8, 12, or 16 are accepted; Slurm derives node_count
+  automatically (4 GPUs/node). Each GPU brings 36 CPU cores + ~400GB memory.
+  Max walltime 96h regardless of GPU count.
+- Node-local scratch is `/tmp` (xfs), 1.5TB per requested GPU, deleted when
+  the job ends. There's also a per-group Lustre area at `/data1/<group>`
+  (1TB) distinct from the 5GB home quota — see `rikyu_config.json`.
+- Software comes from two systems: Lmod environment modules (NVIDIA HPC SDK
+  compiler toolchains) and a public Spack instance
+  (`/shared/software/spack-1.2.0`) for prebuilt applications. See
+  `rikyu_config.json`'s `spack` key for the current package lists.
 
 ## Documentation search (RAG)
+
+The docs source is **`server/rikyu_mcp/data/rikyu_guide.md`** — an original,
+plain-language guide to Rikyu written in our own words (not a copy of the
+official RIKYU User Guide), chunked by markdown heading into
+`server/rikyu_mcp/data/docs_index/chunks.json`. This mirrors the
+Hokusai-style pattern (a bundled guide, not an external git clone) — Rikyu
+previously ingested `github.com/RIKEN-RCCS/ai4s_early_access`, which is now
+stale (the official docs moved to `docs.r-ccs.riken.jp/rikyu`, restructured
+from one page into several).
+
+**Do not cite or point users at the official docs site.** It cannot be
+relied on as a live reference at the time of writing. `chunk_markdown` in
+`rag/ingest.py` deliberately leaves every chunk's `url` field blank, and
+`docs_server.py`'s tool outputs never surface a URL — keep it that way; if
+you add a citation of any kind here, make sure it isn't a link the user
+might try to open.
 
 Docs search uses BGE-M3 (`bge-m3:567m`) served at
 `http://llm.ai.r-ccs.riken.jp:11434/v1` — both are hardcoded constants
 (`EMBED_BASE_URL` / `EMBED_MODEL` in `config.py`). The only user-facing
 setting is `api_key` (`RIKYU_EMBED_API_KEY`). Without it, search falls back
-to BM25.
+to BM25 — true of the currently-committed index, since no embedding key was
+available when it was last built.
 
-**Do not make model or base_url user-configurable.** `embeddings.npy` is
-committed to the repo and is tied to `bge-m3:567m`; using a different model
-at query time silently produces garbage results. If the model ever changes,
-update the constants, re-run ingest, and commit the new `embeddings.npy`.
+**Do not make model or base_url user-configurable.** `embeddings.npy` (when
+present) is tied to `bge-m3:567m`; using a different model at query time
+silently produces garbage results. If the model ever changes, update the
+constants, re-run ingest, and commit the new `embeddings.npy`.
 
 `rag/embed.py` is the only file that knows the API dialect.
 
-**To rebuild the index with embeddings:** run
-`python -m rikyu_mcp.rag.ingest` — produces
-`server/rikyu_mcp/data/docs_index/embeddings.npy` alongside `chunks.json`.
-Commit both files as package data so the uv-installed server works without a
-network round-trip to re-embed.
+**To rebuild the index after editing the guide:** run
+`python -m rikyu_mcp.rag.ingest` from `server/` — produces
+`server/rikyu_mcp/data/docs_index/embeddings.npy` alongside `chunks.json`
+when an embedding key is configured (otherwise it writes a BM25-only index
+and says so). Commit both/either as package data so the uv-installed server
+works without a network round-trip to re-embed.
 
 ## Development workflow
 
@@ -97,10 +123,10 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
 - User settings live in `~/.rikyu/config.json` (may contain an embedding API
   key — never commit it, never echo the key). The `rikyu-configuring` skill
   documents the schema.
-- The docs RAG indexes https://github.com/RIKEN-RCCS/ai4s_early_access
-  (markdown source of the official guide). The embedding endpoint is any
-  OpenAI-compatible `/v1/embeddings` server; with none configured, search
-  falls back to BM25. `rag/embed.py` is the only file that knows the dialect.
+- The docs RAG indexes the bundled `rikyu_guide.md` (see "Documentation
+  search (RAG)" above). The embedding endpoint is any OpenAI-compatible
+  `/v1/embeddings` server; with none configured, search falls back to BM25.
+  `rag/embed.py` is the only file that knows the dialect.
 
 ## Repository map
 

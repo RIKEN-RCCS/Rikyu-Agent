@@ -1,98 +1,62 @@
 [
   {
-    "breadcrumb": "Welcome",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#welcome",
-    "text": "This guide provides basic information for using the AI4S Supercomputer during early access, including login instructions and simple Slurm job examples.\n\nFor hardware information about this system, refer to [https://github.com/RIKEN-RCCS/AI-for-Science-Supercomputer](https://github.com/RIKEN-RCCS/AI-for-Science-Supercomputer).\n\nTo request an account for the AI4S Supercomputer early access program, submit the account registration form.\n\n[Account registration form](https://forms.cloud.microsoft/r/M7ZdHajg9G){ .md-button .md-button--primary .registration-button }",
+    "breadcrumb": "Rikyu",
+    "url": "",
+    "text": "An original, plain-language orientation to the RIKEN Supercomputer RIKYU,\nwritten for users who drive it through RikyuAgent. It records the\nsite-specific facts that shape how you ask for work — not general HPC/Linux\nbackground, and not a command reference. Stable facts (hardware shape, the\npartition model, storage limits) are stated here so the agent can size a job\nwithout a round-trip; genuinely changing values (queue occupancy, installed\nSpack packages, your billing balance) are left to the live system, which the\nagent queries on demand.\n\nAs of mid-2026 the system is in **Early Access Phase 2**, RIKYU's production\ntrial period (running through the end of September 2026) — expect some\npolicy details (billing, allocation rules) to still be settling.",
     "id": 0
   },
   {
-    "breadcrumb": "Welcome > SSH Login",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#ssh-login",
-    "text": "Replace `USERNAME` below with your own username.\n\n```bash\n$ ssh USERNAME@login01.ai.r-ccs.riken.jp\n```",
+    "breadcrumb": "Rikyu > What Rikyu is",
+    "url": "",
+    "text": "Rikyu is a GPU-first supercomputer at the RIKEN Center for Computational\nScience: 400 compute nodes, each an NVIDIA GB200 NVL4 — 2 Grace CPUs (aarch64)\npaired with 4 B200 GPUs, tied together by NVLink-C2C so the CPU and GPU share\na coherent memory space. Aggregate performance is about 64 PFLOPS at FP64 and\n15.5 EFLOPS at FP8. Nodes are linked by an InfiniBand XDR fat-tree network;\njobs confined to one leaf switch's worth of nodes communicate fastest, while\njobs that span many nodes may cross spine switches and see more variable\nlatency under heavy simultaneous traffic.\n\nThe practical consequence: this is a GPU-first, aarch64 machine — describe\njobs in terms of GPUs, not CPU cores, and double-check that any prebuilt\nbinary, container, or Python wheel actually targets aarch64 (x86_64 builds\nwill not run).",
     "id": 1
   },
   {
-    "breadcrumb": "Welcome > Usage",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#usage",
-    "text": "Submit jobs to the system using Slurm. The following partitions are available.\n\n| Partition | Max Nodes | Max GPUs/Node | Max Wall Time | Max Memory/Node |\n| --------- | --------: | ------------: | ------------- | --------------- |\n| 1n1gpu    |         1 |             1 | 96 hours      | 400GB           |\n| 1n2gpu    |         1 |             2 | 96 hours      | 800GB           |\n| 1n4gpu    |         1 |             4 | 96 hours      | 1600GB          |\n| 2n4gpu    |         2 |             4 | 96 hours      | 1600GB          |\n| 4n4gpu    |         4 |             4 | 96 hours      | 1600GB          |\n| 4n4gpu-p  |         4 |             4 | unlimited     | unlimited       |",
+    "breadcrumb": "Rikyu > Getting on the system",
+    "url": "",
+    "text": "Two ways in: the **Open OnDemand** web portal, or **SSH** to\n`login.rikyu.r-ccs.riken.jp`. Either way you end up submitting jobs through\nSlurm and reading/writing the same shared storage.\n\nSSH access needs a registered public key — generate one locally (Ed25519 is\nrecommended; ECDSA P-521 or RSA ≥2048-bit also work) and register it through\nOpen OnDemand's \"SSH Public Key\" page before your first SSH login. There is no\npassword authentication.\n\nAn account requires applying through the RIKYU Account Application System\n(RAAS); eligibility during Early Access Phase 2 is limited to ARiSE users,\naccepted SPReAD1000 projects, and RIKEN members, and project representatives\nmust separately register the project and its members. Anyone continuing from\nEarly Access Phase 1 must re-apply — old accounts are kept only long enough to\nmigrate data by hand and cannot run jobs.",
     "id": 2
   },
   {
-    "breadcrumb": "Welcome > Usage > Module environment",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#module-environment",
-    "text": "The system provides several module environments for development and execution with the NVIDIA HPC Software Development Kit.\n\n| Module | Description |\n| ------ | ----------- |\n| nvhpc | Standard NVHPC environment |\n| nvhpc-nompi | NVHPC without MPI; use this when you manage MPI yourself |\n| nvhpc-hpcx | NVHPC with IB and HPC-X |\n| nvhpc-hpcx-cuda13 | NVHPC with HPC-X and CUDA 13 fixed |\n| nvhpc-byo-compiler | Use the system GCC; BYO means bring your own |",
+    "breadcrumb": "Rikyu > Billing",
+    "url": "",
+    "text": "Usage is billed by GPU-hour (300 yen/GPU-hour as of Early Access Phase 2,\nconsumption tax separate), billed in arrears as a lump sum after the phase\nends. There's a billing dashboard for checking current usage — ask the agent\nto point you to it rather than tracking spend by hand.",
     "id": 3
   },
   {
-    "breadcrumb": "Welcome > Usage > Module environment > List available modules",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#list-available-modules",
-    "text": "Use `module avail` to see the detailed list of available modules.\n\n```bash\n$ module avail\n```",
+    "breadcrumb": "Rikyu > Running jobs",
+    "url": "",
+    "text": "Rikyu schedules with Slurm and has a **single GPU partition**. You do not pick\na partition to get a certain number of GPUs — you ask for the GPU count\ndirectly with `--gpus=N`, and Slurm places the job on however many nodes that\nneeds. Only specific counts are accepted: **1, 2, 3, or 4 GPUs** fit on a\nsingle node; **8, 12, or 16** span 2, 3, or 4 nodes respectively (always 4\nGPUs per node). Each GPU brings a fixed, proportional share of the node: 36\nCPU cores and roughly 400 GB of combined CPU+GPU-addressable memory (GPU\nmemory itself is 173 GiB per GPU; the rest is CPU-side LPDDR5X, reachable from\nthe GPU over NVLink-C2C but with different performance characteristics —\ndon't assume the two are interchangeable for bandwidth-sensitive code).\n\nWall time is capped at 96 hours regardless of GPU count; have the agent\nconfirm the current default if you don't set one explicitly. Have the agent\nsubmit through `sbatch`, check with `squeue`/`sacct`, and cancel with\n`scancel` — you describe the job in resource terms and it handles the script.",
     "id": 4
   },
   {
-    "breadcrumb": "Welcome > Usage > Module environment > List loaded modules",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#list-loaded-modules",
-    "text": "Use `module list` to check which modules are currently loaded.\n\n```bash\n$ module list\n```",
+    "breadcrumb": "Rikyu > Storage",
+    "url": "",
+    "text": "Three tiers, each with a different purpose and a real capacity limit:\n\n- **Home** (`/home/<user>`) — 5 GB, Lustre, yours alone. Configuration and\n  small scripts, not datasets.\n- **Group** (`/data1/<group>`) — 1 TB per group, Lustre, shared read/write\n  among everyone in that group. The right place for shared datasets and\n  results; a single user may belong to more than one group.\n- **Scratch** (`/tmp` on the compute node) — 1.5 TB per requested GPU, local\n  xfs, visible only to the job that's running. Fast, but wiped the moment the\n  job ends — copy anything worth keeping back to home or group storage before\n  the job finishes.\n\nHome and group storage sit on the same shared Lustre filesystem (2 PB\nhigh-speed SSD backing home, 10 PB bulk HDD backing group), so both are\nreachable from login nodes too, and both can request a capacity increase\nthrough a support ticket if you outgrow the default.",
     "id": 5
   },
   {
-    "breadcrumb": "Welcome > Usage > Module environment > Load a module",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#load-a-module",
-    "text": "Use `module load` to load the environment you want to use.\n\n```bash\n$ module load nvhpc\n```",
+    "breadcrumb": "Rikyu > Software: modules and Spack",
+    "url": "",
+    "text": "Two complementary systems, and it matters which one a piece of software comes\nfrom:\n\n- **Environment modules** (Lmod) give you the **NVIDIA HPC SDK** compiler\n  toolchains: `nvhpc` (standard, includes MPI), `nvhpc-nompi` (bring your own\n  MPI), `nvhpc-hpcx` (HPC-X MPI over InfiniBand), `nvhpc-hpcx-cuda13` (same,\n  CUDA pinned to 13), and `nvhpc-byo-compiler` (use the system GCC instead of\n  NVIDIA's compilers). Have the agent list current versions live rather than\n  assuming one.\n- **Spack** provides prebuilt **applications and libraries** — things like\n  `quantum-espresso`, `gromacs`, `lammps`, plus a large catalogue of\n  scientific Python, visualization, and dev tooling. Loading Spack's\n  environment (`spack load <package>`) sets up `PATH` for that application;\n  GPU-enabled builds exist for `petsc`, `lammps`, `quantum-espresso`,\n  `gromacs`, and `kokkos`, and `quantum-espresso`/`gromacs` additionally have\n  HPC-X-MPI-aware builds for multi-node runs. Requesting Spack GPU software\n  does **not** by itself allocate GPUs — the Slurm `--gpus=` request still\n  has to be made alongside it.\n\nIf a package you need isn't in the shared (public) Spack instance, you can\nbuild your own in a private instance under your home directory and chain it\nto the public one so you're not rebuilding shared dependencies from scratch —\nhave the agent walk you through this only when the public catalogue genuinely\ndoesn't cover what you need, since it's slower and more involved than using\nwhat's already built.",
     "id": 6
   },
   {
-    "breadcrumb": "Welcome > Usage > Module environment > Switch modules",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#switch-modules",
-    "text": "Unload the current module before loading another one.\n\n```bash\n$ module unload nvhpc\n$ module load nvhpc-hpcx\n```",
+    "breadcrumb": "Rikyu > Bringing your own environment with containers",
+    "url": "",
+    "text": "Singularity is available for carrying a specific software stack onto Rikyu.\nPoint the agent at a `.sif` image (built yourself or pulled from a registry)\nand it runs your program inside it; GPU passthrough (`--nv`) is added\nautomatically whenever the job also requests GPUs.",
     "id": 7
   },
   {
-    "breadcrumb": "Welcome > Usage > Module environment > Inspect a module",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#inspect-a-module",
-    "text": "Use `module show` to check what a module changes in your environment.\n\n```bash\n$ module show nvhpc-hpcx\n```",
+    "breadcrumb": "Rikyu > Following jobs and untangling failures",
+    "url": "",
+    "text": "Ask the agent for a job's state, queue reason, and history rather than\nmemorizing Slurm's own state names — it normalizes them for you. Console\noutput lands in `slurm-<jobid>.out` in the job's working directory.\n\nCommon failure causes on Rikyu:\n\n- An aarch64/x86_64 mismatch — a binary, container, or Python wheel built for\n  x86_64 fails immediately with an \"exec format\" style error.\n- Running out of the per-GPU memory share — request more GPUs (which scales\n  both CPU and memory together) rather than only adding `--mem`.\n- Hitting the 96-hour wall-time ceiling on a long run.\n- Scratch data lost because it wasn't copied out of `/tmp` before the job\n  ended.",
     "id": 8
   },
   {
-    "breadcrumb": "Welcome > Usage > Submit a batch job",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#submit-a-batch-job",
-    "text": "Create a job script such as `job.sh`. The following example requests one node and one GPU on the `1n1gpu` partition.\n\n```bash\n#!/bin/bash\n#SBATCH --job-name=test-job\n#SBATCH --partition=1n1gpu\n#SBATCH --nodes=1\n#SBATCH --gpus-per-node=1\n#SBATCH --time=00:10:00\n\nmodule load nvhpc\n\nhostname\nnvidia-smi\n```\n\nSubmit the job with `sbatch`.\n\n```bash\n$ sbatch job.sh\n```\n\nCheck your jobs with `squeue`.\n\n```bash\n$ squeue -u $USER\n```",
+    "breadcrumb": "Rikyu > Staying current",
+    "url": "",
+    "text": "Rikyu is in active early-access rollout, so partition rules, Spack packages,\nand account/billing policy can all still change. The agent's live queries\n(current queue state, installed Spack packages, module versions) are always\nmore current than anything written here — lean on those, and fall back to\nRIKEN R-CCS support for anything this guide doesn't cover.",
     "id": 9
-  },
-  {
-    "breadcrumb": "Welcome > Usage > Run an interactive job > With salloc",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#with-salloc",
-    "text": "Use `salloc` to allocate resources for an interactive session. The following example requests one node and one GPU on the `1n1gpu` partition for 10 minutes.\n\n```bash\n$ salloc --partition=1n1gpu --nodes=1 --gpus-per-node=1 --time=00:10:00\n```\n\nAfter the allocation starts, use `srun` to run commands on the allocated node.\n\n```bash\n$ srun hostname\n$ srun nvidia-smi\n```\n\nWhen you are finished, run `exit` to release the interactive allocation.\n\n```bash\n$ exit\nexit\nsalloc: Relinquishing job allocation 1066\n```",
-    "id": 10
-  },
-  {
-    "breadcrumb": "Welcome > Usage > Run an interactive job > With srun",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#with-srun",
-    "text": "Use `srun --pty bash` to start an interactive shell on a compute node. The following example requests one node and one GPU on the `1n1gpu` partition for 10 minutes.\n\n```bash\n$ srun --partition=1n1gpu --nodes=1 --gpus-per-node=1 --time=00:10:00 --pty bash\n```\n\nWhen you are finished, run `exit` to leave the shell and end the `srun` job.\n\n```bash\n$ exit\nexit\n```",
-    "id": 11
-  },
-  {
-    "breadcrumb": "Welcome > Usage > Cancel a job",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#cancel-a-job",
-    "text": "Cancel a submitted or running job with `scancel`. Replace `JOBID` with the job ID shown by `sbatch` or `squeue`.\n\n```bash\n$ scancel JOBID\n```",
-    "id": 12
-  },
-  {
-    "breadcrumb": "Welcome > Usage > Check partition status",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#check-partition-status",
-    "text": "Use `sinfo` to check the status of partitions and nodes.\n\n```bash\n$ sinfo\n```\n\nTo check a specific partition, use `-p`.\n\n```bash\n$ sinfo -p 1n1gpu\n```",
-    "id": 13
-  },
-  {
-    "breadcrumb": "Welcome > Usage > Local scratch storage",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#local-scratch-storage",
-    "text": "Each compute node provides a local scratch area on an approximately 7TB NVMe\nSSD. Use the `USER_SCRATCH_DIR` environment variable to access this scratch area\nfrom your job.\n\nThis storage is useful when you need fast local SSD access for temporary files,\ndatasets, checkpoints, or intermediate results during computation. Files in this\narea are automatically deleted after the job finishes, so copy any results that\nyou need to keep to your persistent storage before the job ends.\n\n```bash\n#!/bin/bash\n#SBATCH --job-name=scratch-example\n#SBATCH --partition=1n1gpu\n#SBATCH --nodes=1\n#SBATCH --gpus-per-node=1\n#SBATCH --time=00:10:00\n\nmodule load nvhpc\n\necho \"Scratch directory: ${USER_SCRATCH_DIR}\"\n\n./my_application > ${USER_SCRATCH_DIR}/output.log\n\n# Copy results that must be kept before the job finishes.\n# SLURM_SUBMIT_DIR is the directory where you ran the sbatch command.\ncp ${USER_SCRATCH_DIR}/output.log ${SLURM_SUBMIT_DIR}/\n```",
-    "id": 14
-  },
-  {
-    "breadcrumb": "Welcome > Contact",
-    "url": "https://riken-rccs.github.io/ai4s_early_access/en/#contact",
-    "text": "For inquiries, contact the support team by email: `rccs-ai4s-support [at] ml.riken.jp`.",
-    "id": 15
   }
 ]

@@ -51,17 +51,19 @@ def map_slurm_state(native: str) -> JobState:
 class ResourceSpec(BaseModel):
     """Resources for a job (PSI/J ResourceSpec + Rikyu extensions).
 
-    On Rikyu the partition (JobAttributes.queue_name) fixes the per-node
-    resource share. gpus_per_node is a Rikyu-specific extension that maps to
-    --gpus-per-node; gpu_cores_per_process is the PSI/J standard equivalent.
-    If both are set, gpus_per_node takes precedence.
+    Rikyu has a single GPU partition; you request a total GPU count for the
+    job with gpus (Rikyu extension, maps to --gpus), and Slurm derives
+    node_count automatically (4 GPUs per node) unless node_count is set
+    explicitly. Only 1, 2, 3, 4, 8, 12, or 16 GPUs are accepted.
+    gpu_cores_per_process is the PSI/J standard equivalent; if both are set,
+    gpus takes precedence.
     """
     node_count: int = 1
     process_count: int | None = Field(None, description="Total processes (alternative to processes_per_node × node_count)")
     processes_per_node: int = 1
     cpu_cores_per_process: int | None = None
-    gpu_cores_per_process: int | None = Field(None, description="PSI/J standard GPU field; prefer gpus_per_node on Rikyu")
-    gpus_per_node: int = Field(1, description="Rikyu extension: maps to --gpus-per-node")
+    gpu_cores_per_process: int | None = Field(None, description="PSI/J standard GPU field; prefer gpus on Rikyu")
+    gpus: int = Field(1, description="Rikyu extension: total GPUs requested for the job, maps to --gpus. Supported counts: 1, 2, 3, 4, 8, 12, 16.")
     exclusive_node_use: bool = Field(False, description="Request exclusive node allocation (--exclusive)")
     memory: int | None = Field(None, description="Memory per node in bytes (maps to --mem)")
 
@@ -72,7 +74,7 @@ class JobAttributes(BaseModel):
         3600,
         description="Wall time as integer seconds or HH:MM:SS / D-HH:MM:SS string",
     )
-    queue_name: str = Field("1n1gpu", description="Slurm partition")
+    queue_name: str = Field("gpu", description="Slurm partition")
     account: str | None = Field(None, description="Slurm account to charge")
     reservation_id: str | None = Field(None, description="Slurm reservation name (--reservation)")
     custom_attributes: dict[str, str] = Field(default_factory=dict)

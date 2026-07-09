@@ -109,8 +109,8 @@ Verified against the ALCF IRI spec (fetched 2026-06-12 from api.alcf.anl.gov/ope
 | `processes_per_node` | present | present ✅ | — |
 | `process_count` | present (total processes) | absent | 🔜 Add; alternative to `processes_per_node × node_count` |
 | `cpu_cores_per_process` | present | present ✅ | — |
-| `gpu_cores_per_process` | present (PSI/J standard) | absent | 🔜 Add as alias/fallback; Rikyu uses `gpus_per_node` |
-| `gpus_per_node` | absent (Rikyu extension) | present | Keep — maps to `--gpus-per-node`; document as extension |
+| `gpu_cores_per_process` | present (PSI/J standard) | absent | 🔜 Add as alias/fallback; Rikyu uses `gpus` |
+| `gpus` | absent (Rikyu extension) | present | Keep — maps to `--gpus` (total GPUs for the job, not per-node); document as extension. Renamed from `gpus_per_node` 2026-07 once the official docs confirmed Rikyu has a single partition and requests a job-total GPU count, not a per-node one. |
 | `exclusive_node_use` | present | absent | 🔜 Add; maps to `--exclusive` |
 | `memory` | present (bytes) | absent | 🔜 Add; maps to `--mem` (convert bytes → MB for sbatch) |
 

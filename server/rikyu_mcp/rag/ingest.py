@@ -1,18 +1,30 @@
-"""Build the documentation index from the Rikyu docs source repository.
+"""Build the documentation index from the RikyuAgent guide.
 
-Chunks the English markdown by heading, attaches the published site URL with
-the section anchor, and (when the embedding endpoint is configured) computes
-embeddings. Run this whenever the docs change:
+The docs source is `rikyu_mcp/data/rikyu_guide.md` — an original, plain-language
+guide to Rikyu written for users working through the agent. (It is *not* a copy
+of the official RIKYU User Guide: facts only, in our own words, so the committed
+index can be freely distributed.) This ingester chunks the markdown by heading
+and writes rikyu_mcp/data/docs_index/chunks.json (+ embeddings.npy).
 
-    python -m rikyu_mcp.rag.ingest                # clone fresh + embed if configured
-    python -m rikyu_mcp.rag.ingest --source PATH  # use an existing checkout
-    python -m rikyu_mcp.rag.ingest --no-embed     # keyword-search-only index
+    python -m rikyu_mcp.rag.ingest                  # bundled guide + embeddings
+    python -m rikyu_mcp.rag.ingest --source FILE    # use a specific markdown file
+    python -m rikyu_mcp.rag.ingest --no-embed       # keyword-only index
+
+Embeddings use the shared RIKEN endpoint (config.EMBED_BASE_URL / EMBED_MODEL)
+and require an API key (RIKYU_EMBED_API_KEY / RCCS_EMBED_API_KEY or
+embedding.api_key in the config file). Without a key, ingest writes a
+BM25-only index and says so.
+
+End users never need to run this — chunks.json (+ embeddings.npy) is committed.
+
+The guide is not attributed to any external URL: it deliberately does not cite
+or point users at a live site (see the module docstring in docs_server.py for
+why — in short, the official site cannot be relied on as a live reference
+right now, so nothing here should send a user to it).
 """
 import argparse
 import json
 import re
-import subprocess
-import tempfile
 from pathlib import Path
 
 from rikyu_mcp import config
@@ -20,18 +32,13 @@ from rikyu_mcp import config
 _HEADING = re.compile(r"^(#{1,4})\s+(.*)$")
 
 
-def _slugify(title: str) -> str:
-    """mkdocs-style anchor slug."""
-    slug = title.strip().lower()
-    slug = re.sub(r"[^\w\- ]", "", slug)
-    return re.sub(r"\s+", "-", slug).strip("-")
+def chunk_markdown(text: str) -> list[dict]:
+    """Split a markdown guide into one chunk per heading section.
 
-
-def chunk_markdown(text: str, page_url: str) -> list[dict]:
-    """Split a markdown page into one chunk per heading section.
-
-    Each chunk carries a breadcrumb of its parent headings so retrieval and
-    the model both see the context (e.g. 'Usage > Submit a batch job').
+    Each chunk carries a breadcrumb of its parent headings so retrieval and the
+    model both see the context (e.g. 'Running jobs'). The url field is
+    intentionally blank — this guide is bundled with the agent, not a mirror of
+    a live external page; nothing in the RAG pipeline should surface a URL.
     """
     lines = text.splitlines()
     sections: list[dict] = []
@@ -42,10 +49,9 @@ def chunk_markdown(text: str, page_url: str) -> list[dict]:
     def flush():
         body = "\n".join(current).strip()
         if body and stack:
-            title = stack[-1][1]
             sections.append({
                 "breadcrumb": " > ".join(t for _, t in stack),
-                "url": f"{page_url}#{_slugify(title)}",
+                "url": "",
                 "text": body,
             })
         current.clear()
@@ -70,10 +76,7 @@ def chunk_markdown(text: str, page_url: str) -> list[dict]:
 
 
 def build_index(source: Path, out_dir: Path, embed: bool) -> None:
-    chunks: list[dict] = []
-    for md_file in sorted((source / "docs" / "en").rglob("*.md")):
-        text = md_file.read_text()
-        chunks.extend(chunk_markdown(text, config.DOCS_SITE_BASE))
+    chunks = chunk_markdown(source.read_text())
     for i, chunk in enumerate(chunks):
         chunk["id"] = i
 
@@ -85,38 +88,33 @@ def build_index(source: Path, out_dir: Path, embed: bool) -> None:
     emb_path = out_dir / "embeddings.npy"
     if not embed:
         emb_path.unlink(missing_ok=True)
-        print("Skipped embeddings (keyword search only).")
+        print("Skipped embeddings (BM25 keyword search only).")
         return
-
-    from rikyu_mcp.rag.embed import get_client
-    client = get_client()
+    if not config.embed_api_key():
+        emb_path.unlink(missing_ok=True)
+        print("No embedding API key configured — wrote a BM25-only index "
+              "(set RIKYU_EMBED_API_KEY and re-run to add vectors).")
+        return
 
     import numpy as np
 
+    from rikyu_mcp.rag.embed import get_client
     from rikyu_mcp.rag.store import chunk_text
-    vectors = client.embed([chunk_text(c) for c in chunks])
+    vectors = get_client().embed([chunk_text(c) for c in chunks])
     np.save(emb_path, np.asarray(vectors, dtype="float32"))
     print(f"Wrote {len(vectors)} embeddings (dim {len(vectors[0])}) to {emb_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=None,
-                        help="Existing checkout of the docs repo (otherwise cloned fresh).")
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--source", type=Path, default=config.DOCS_SOURCE,
+                        help="Markdown guide to index (defaults to the bundled guide).")
     parser.add_argument("--out", type=Path, default=config.DOCS_INDEX_DIR)
     parser.add_argument("--no-embed", action="store_true",
                         help="Skip embeddings; build a keyword-search-only index.")
     args = parser.parse_args()
-
-    if args.source:
-        build_index(args.source, args.out, embed=not args.no_embed)
-    else:
-        with tempfile.TemporaryDirectory() as tmp:
-            subprocess.run(
-                ["git", "clone", "--depth", "1", config.DOCS_REPO_URL, tmp],
-                check=True,
-            )
-            build_index(Path(tmp), args.out, embed=not args.no_embed)
+    build_index(args.source, args.out, embed=not args.no_embed)
 
 
 if __name__ == "__main__":

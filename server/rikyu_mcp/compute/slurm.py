@@ -68,18 +68,23 @@ class SlurmBackend(SchedulerBackend):
     def _header(self, spec: JobSpec) -> list[str]:
         res = spec.resources
         attr = spec.attributes
-        # gpus_per_node (Rikyu extension) takes precedence over PSI/J gpu_cores_per_process
-        gpus = res.gpus_per_node if res.gpus_per_node else res.gpu_cores_per_process
+        # gpus (Rikyu extension: total GPUs for the job) takes precedence over
+        # PSI/J gpu_cores_per_process
+        gpus = res.gpus if res.gpus else res.gpu_cores_per_process
 
         lines = [
             "#!/bin/bash",
             f"#SBATCH --job-name={spec.name}",
             f"#SBATCH --partition={attr.queue_name}",
-            f"#SBATCH --nodes={res.node_count}",
             f"#SBATCH --time={duration_to_hms(attr.duration)}",
         ]
         if gpus:
-            lines.append(f"#SBATCH --gpus-per-node={gpus}")
+            lines.append(f"#SBATCH --gpus={gpus}")
+        # Slurm derives node_count from --gpus on Rikyu's single partition (4
+        # GPUs/node); only pin --nodes when the caller explicitly asks for a
+        # count other than the default of 1, e.g. to control MPI placement.
+        if res.node_count != 1:
+            lines.append(f"#SBATCH --nodes={res.node_count}")
         lines.append(f"#SBATCH --ntasks-per-node={res.processes_per_node}")
         if res.process_count:
             lines.append(f"#SBATCH --ntasks={res.process_count}")
@@ -109,7 +114,7 @@ class SlurmBackend(SchedulerBackend):
     def render_script(self, spec: JobSpec) -> str:
         """Render a JobSpec as a Rikyu sbatch script."""
         res = spec.resources
-        gpu_requested = bool(res.gpus_per_node or res.gpu_cores_per_process)
+        gpu_requested = bool(res.gpus or res.gpu_cores_per_process)
         return "\n".join(self._header(spec)) + render_body(spec, gpu_requested)
 
     def submit(self, spec: JobSpec) -> dict:
