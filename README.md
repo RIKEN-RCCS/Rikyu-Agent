@@ -22,44 +22,99 @@ docs/                     Source PDFs of RIKYU's official user guide (reference 
                            for the hand-written guide actually bundled with the plugin)
 ```
 
+## Configure
+
+Settings live in `~/.hpc-agent/rikyu.json` (the common directory shared by
+every hpc-agent-core plugin):
+
+```json
+{
+  "ssh": {"host": "rikyu"}
+}
+```
+
+- `ssh.host` is a `~/.ssh/config` alias or `user@login.rikyu.r-ccs.riken.jp`
+  (key-based auth required — register your key via Open OnDemand's "SSH
+  Public Key" app first). `RIKYU_HOST` overrides the file.
+- A legacy `~/.rikyu/config.json` is still read if it's the only config
+  present.
+
+For documentation search, add your API key for the shared RIKEN embedding
+service:
+
+```json
+{
+  "ssh": {"host": "rikyu"},
+  "embedding": {"api_key": "..."}
+}
+```
+
+`RIKYU_EMBED_API_KEY` (or the shared `RCCS_EMBED_API_KEY`) sets the key.
+With it, docs search uses semantic (vector) matching; without it — or off
+the RIKEN network — it falls back to BM25 keyword search over the same
+content. The `rikyu-configuring` skill walks through this interactively.
+
 ## Install
 
-1. Install the server package (its dependency, `hpc-agent-core`, pulls in
-   the MCP SDK, `remotemanager`, etc.):
+### Prerequisite: uv
 
-   ```
-   cd server
-   python3 -m venv .venv
-   .venv/bin/pip install -e .
-   ```
+The plugin starts its MCP servers with `uv tool run` from this repository's
+`main` branch, so [`uv`](https://docs.astral.sh/uv/) must be installed and
+on your `PATH` before Claude Code or Codex starts the plugin:
 
-   Make sure the resulting console scripts (`rikyu-hpc-server`,
-   `rikyu-docs-server`, `rikyu-doctor`) are on `PATH` when Claude
-   Code/Codex launches — e.g. by activating `.venv`, or installing with
-   `pipx install ./server`.
+```bash
+brew install uv        # or: curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-2. Add this repo as a plugin marketplace (Claude Code: `.claude-plugin/marketplace.json`
-   at the repo root; Codex: `.agents/plugins/marketplace.json`), then
-   install the `rikyu` plugin from it.
+Restart Claude Code or Codex after installing uv so the plugin process
+inherits the updated `PATH`.
 
-3. Configure access — see the `rikyu-configuring` skill, or by hand:
+### Claude Code
 
-   - Register an SSH key with RIKYU via Open OnDemand's "SSH Public Key" app.
-   - Write `~/.hpc-agent/rikyu.json`:
-     ```json
-     {"ssh": {"host": "USERNAME@login.rikyu.r-ccs.riken.jp"}}
-     ```
-     (or `"host": "rikyu"` if you already have that `Host` alias in `~/.ssh/config`).
-   - `RIKYU_HOST` overrides this for a one-off session without writing the file.
+```
+/plugin marketplace add RIKEN-RCCS/Rikyu-Agent
+/plugin install rikyu@rikyu-marketplace
+/reload-plugins
+```
 
-4. Verify:
+### Codex
 
-   ```
-   rikyu-doctor
-   ```
+```
+codex plugin marketplace add RIKEN-RCCS/Rikyu-Agent
+```
 
-   All lines should read `✓` except possibly embedding (falls back to
-   keyword search outside RIKEN's network — not blocking).
+Then open `/plugins`, install `rikyu`, start a new thread, and run
+`/rikyu-demo` to verify the connection end-to-end.
+
+### Manual (any MCP-compatible client)
+
+Create or edit `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "rikyu-hpc": {
+      "command": "uv",
+      "args": ["tool", "run", "--quiet", "--from", "git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server", "rikyu-hpc-mcp"],
+      "env": {}
+    },
+    "rikyu-docs": {
+      "command": "uv",
+      "args": ["tool", "run", "--quiet", "--from", "git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server", "rikyu-docs-mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
+## Verify
+
+```bash
+uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server rikyu-doctor
+```
+
+All lines should read `✓` except possibly embedding (falls back to keyword
+search outside RIKEN's network — not blocking).
 
 ## What the plugin can do
 
@@ -93,6 +148,7 @@ or ask the agent to `search_docs`.
 
 ```
 cd server
+python3 -m venv .venv && .venv/bin/pip install -e .
 .venv/bin/python -m rikyu_mcp.doctor          # health check
 .venv/bin/python tests/smoke.py               # read-only MCP stdio test
 .venv/bin/python tests/smoke.py --job          # + submits a real 1-GPU job
