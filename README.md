@@ -151,7 +151,7 @@ Rebuilding the docs index after editing `rikyu_guide.md`:
 
 ```
 cd server
-uv run python -m hpc_agent_core.rag.ingest
+uv run python -m rikyu_mcp.ingest
 ```
 
 Commit the resulting `rikyu_mcp/data/docs_index/` (chunks.json, and
