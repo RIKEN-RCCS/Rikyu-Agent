@@ -1,12 +1,13 @@
 # AGENTS.md
 
-Agent-facing notes for working in this repo. Read [`PORTING.md`](PORTING.md)
+Agent-facing notes for working in this repo. Read
+[hpc-agent-core's `PORTING.md`](https://github.com/william-dawson/hpc-agent-core/blob/main/PORTING.md)
 first — it's the general porting guide this repo was built from and isn't
-duplicated here. This file covers what's specific to *this* port: design
-rules to keep honoring, RIKYU's cluster facts, decisions made under
-uncertainty, and the repo map.
+duplicated here (no `PORTING.md` file lives in this repo). This file covers
+what's specific to *this* port: design rules to keep honoring, RIKYU's
+cluster facts, decisions made under uncertainty, and the repo map.
 
-## Design rules (from PORTING.md — do not violate)
+## Design rules (from hpc-agent-core's PORTING.md — do not violate)
 
 1. **No write access to `hpc-agent-core`.** Every RIKYU-specific behavior
    lives in `server/rikyu_mcp/`, reached through `configure()` arguments,
@@ -122,5 +123,4 @@ server/
   tests/smoke.py                        read-only MCP stdio test; --job submits a real job
 docs/                                    source PDFs (reference only, not shipped)
 IRI_CHECKLIST.md                        endpoint-by-endpoint coverage
-PORTING.md                              the general porting guide this repo follows
 ```

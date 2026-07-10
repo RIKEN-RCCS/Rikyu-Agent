@@ -8,7 +8,8 @@ manage files, and search RIKYU's documentation, over SSH.
 
 Built as a thin machine-specific "skin" on top of
 [`hpc-agent-core`](https://pypi.org/project/hpc-agent-core/) — see
-[`PORTING.md`](PORTING.md) for the porting guide this repo follows, and
+[hpc-agent-core's `PORTING.md`](https://github.com/william-dawson/hpc-agent-core/blob/main/PORTING.md)
+for the general porting guide this repo follows, and
 [`AGENTS.md`](AGENTS.md) for the design rules and cluster facts an agent
 working on this repo should know.
 
