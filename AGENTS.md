@@ -1,156 +1,126 @@
-# RikyuAgent — agent instructions
+# AGENTS.md
 
-Claude Code and Codex plugin for the RIKEN Rikyu supercomputer: two MCP servers
-(`rikyu-hpc` for Slurm, `rikyu-docs` for documentation RAG) plus skills. See
-README.md for the user-facing overview.
+Agent-facing notes for working in this repo. Read [`PORTING.md`](PORTING.md)
+first — it's the general porting guide this repo was built from and isn't
+duplicated here. This file covers what's specific to *this* port: design
+rules to keep honoring, RIKYU's cluster facts, decisions made under
+uncertainty, and the repo map.
 
-## Design rules (read before changing code)
+## Design rules (from PORTING.md — do not violate)
 
-- **The `rikyu-hpc` tool surface mirrors the IRI Facility API** (DOE standard).
-  The reference spec is **not committed** (it is ALCF's, with no redistribution
-  license); fetch a working copy when you need it for coverage work —
-  `curl -s https://api.alcf.anl.gov/openapi.json -o openapi.json` (git-ignored).
-  Before adding, renaming, or removing a tool, check `IRI_CHECKLIST.md` — new
-  tools should map to an IRI endpoint and the checklist must be updated.
-  Extensions with no IRI counterpart (like `run_command_on_cluster`) are allowed
-  but must be marked as such. When porting, **re-decide coverage per machine** —
-  the checklist verdicts are machine-specific (an endpoint can be implementable on
-  one machine and not another); see PORTING.md.
-- **All cluster interaction goes through `server/rikyu_mcp/middleware.py`**
-  (`run_command` / `write_remote_file`). Never shell out to ssh directly from
-  tool code. Middleware enforces three conventions in one place: commands run
-  under a **login shell** (Slurm on Rikyu is invisible to non-login shells),
-  the working directory is **$HOME** (relative paths resolve there), and
-  payloads travel **base64-encoded** (quote-proof). Output is capped at 200KB.
-- **Never write to stdout in server code** — the MCP stdio transport uses it
-  for JSON-RPC and any stray print corrupts the session. Log to stderr.
-  remotemanager prints progress to stdout; middleware redirects it.
-- **Tools are thin verbs; workflow knowledge lives in `plugins/rikyu/skills/`.** If you're
-  writing a long docstring telling the model *when* to do something, it
-  probably belongs in a SKILL.md instead.
-- **The MCP runtime must be self-contained under `server/`.** Plugin metadata is
-  shared across Claude Code and Codex, but `plugins/rikyu/.mcp.json` launches the
-  servers with `uv tool run --from git+https://github.com/RIKEN-RCCS/Rikyu-Agent.git@main#subdirectory=server`.
-  Do not depend on `CLAUDE_PLUGIN_ROOT`, Codex-specific root variables, or
-  repo-root `data/` paths at runtime. Anything the MCP server needs after uv
-  installation must be package data under `server/rikyu_mcp/data/`.
-- **`models.py` follows PSI/J shapes** (JobSpec/ResourceSpec/JobAttributes/
-  JobState). Deviations are listed at the bottom of `IRI_CHECKLIST.md` — add
-  to that list if you introduce one.
-- Bias to simple and maintainable. No new dependencies without a strong
-  reason (current set: mcp, remotemanager, httpx, numpy). Python ≥ 3.10.
+1. **No write access to `hpc-agent-core`.** Every RIKYU-specific behavior
+   lives in `server/rikyu_mcp/`, reached through `configure()` arguments,
+   `SlurmBackend` constructor arguments, or — if nothing fits — a local
+   equivalent that skips the `hpc_agent_core` module in question. If you
+   think you need to edit the installed `hpc-agent-core` package, you've
+   misunderstood something.
+2. **Clarity over cleverness.** RIKYU is one of several machines built this
+   way; a bit of RIKYU-specific duplication that reads clearly beats a
+   generic abstraction that doesn't.
+3. **The MCP server must never fail to start.** Nothing above module scope
+   in `config.py`/`compute.py`/`hpc_server.py` touches the network or reads
+   the config file eagerly. A missing/malformed config is a tool-call-time
+   error ("run the configuring skill"), not a startup crash.
+4. **Bias agent-created files into `~/agent/`.** `compute.py`'s
+   `jobs_dir="agent/jobs"` already does this for job scripts; anything else
+   this plugin creates on the cluster should follow the same bias unless
+   the user gives an explicit path.
+5. **Show before you run.** `submit_job` and `run_command_on_cluster`
+   should be preceded by showing the user what's about to execute, unless
+   they've explicitly said to just run it. This is enforced in the tools'
+   docstrings (agent-facing instructions), not in code — there's no way to
+   enforce "ask first" at the MCP protocol level.
+6. **Never invent a documentation URL.** `docs_cite_url` is deliberately
+   blank (see "Decisions made under uncertainty" below) — don't add one
+   back into a skill or tool description.
 
-## Cluster facts
+## RIKYU cluster facts
 
-- SSH destination comes from `~/.rikyu/config.json` (`ssh.host`, default
-  alias `rikyu`) → `login.rikyu.r-ccs.riken.jp`. Key-based auth only — the
-  MCP server cannot answer password prompts.
-- Nodes are **aarch64** (NVIDIA GB200 NVL4: 2 Grace CPUs + 4 B200 GPUs per
-  node, 400 nodes). x86_64 binaries and wheels do not run there.
-- There is a **single GPU partition** (`gpu`). Jobs request a total GPU
-  count with `--gpus=N` — never `--gpus-per-node` or `--gres` — and only
-  1, 2, 3, 4, 8, 12, or 16 are accepted; Slurm derives node_count
-  automatically (4 GPUs/node). Each GPU brings 36 CPU cores + ~400GB memory.
-  Max walltime 96h regardless of GPU count.
-- Node-local scratch is `/tmp` (xfs), 1.5TB per requested GPU, deleted when
-  the job ends. There's also a per-group Lustre area at `/data1/<group>`
-  (1TB) distinct from the 5GB home quota — see `rikyu_config.json`.
-- Software comes from two systems: Lmod environment modules (NVIDIA HPC SDK
-  compiler toolchains) and a public Spack instance
-  (`/shared/software/spack-1.2.0`) for prebuilt applications. See
-  `rikyu_config.json`'s `spack` key for the current package lists.
+Source: RIKYU's official user guide PDFs, originally fetched into `docs/`
+(System Overview, Login, Slurm, Job Resources, Storage, Module Environment,
+Spack, Welcome), read 2026-07-10. If RIKYU's documentation changes, re-read
+the source and hand-edit `server/rikyu_mcp/data/rikyu_guide.md` and
+`rikyu_config.json` — per PORTING.md §2, this repo deliberately never
+auto-refetches a live site.
 
-## Documentation search (RAG)
+- **Scheduler**: Slurm, single partition `gpu`, 400 nodes, GPU vendor NVIDIA
+  only. GPU request style is job-total (`--gpus=N`, never `--gres=gpu:N`);
+  Slurm derives node count from the GPU count automatically (4 GPUs/node) —
+  no job script example in the source docs ever sets `--nodes`. `--account`
+  never appears in a job script either; treated as unused.
+  `compute.py` uses `SlurmBackend(has_accounting=True, gpu_request_style="gpus_total")`
+  — the plain first row of PORTING.md §6's table, and `hpc-agent-core`
+  0.3.0's own `SlurmBackend` docstring names Rikyu explicitly as a verified
+  `has_accounting=True` machine, so this wasn't a guess.
+- **GPU counts**: only 1, 2, 3, 4, 8, 12, 16 are accepted; `hpc_server.py`'s
+  `submit_job` validates this before submission (`_validate_gpu_count`) so
+  a bad count fails clearly instead of behaving unpredictably in Slurm.
+- **Wall time**: flat 96-hour cap regardless of job size.
+- **Storage**: home (`/home/USER`, 5 GB, Lustre, SSD-backed), group
+  (`/data1/GROUP`, 1 TB, Lustre, HDD-backed), scratch (`/tmp`, 1.5 TB/GPU,
+  xfs, node-local, wiped at job end).
+- **Software**: Lmod modules for compiler/MPI toolchains (`nvhpc` and four
+  variants); Spack (public instance at
+  `/shared/software/spack-1.2.0/share/spack/setup-env.sh`) for applications.
+- **Login**: `login.rikyu.r-ccs.riken.jp`; key registration via Open
+  OnDemand's "SSH Public Key" app, not email-an-admin.
 
-The docs source is **`server/rikyu_mcp/data/rikyu_guide.md`** — an original,
-plain-language guide to Rikyu written in our own words (not a copy of the
-official RIKYU User Guide), chunked by markdown heading into
-`server/rikyu_mcp/data/docs_index/chunks.json`. This mirrors the
-Hokusai-style pattern (a bundled guide, not an external git clone) — Rikyu
-previously ingested `github.com/RIKEN-RCCS/ai4s_early_access`, which is now
-stale (the official docs moved to `docs.r-ccs.riken.jp/rikyu`, restructured
-from one page into several).
+## Decisions made under uncertainty
 
-**Do not cite or point users at the official docs site.** It cannot be
-relied on as a live reference at the time of writing. `chunk_markdown` in
-`rag/ingest.py` deliberately leaves every chunk's `url` field blank, and
-`docs_server.py`'s tool outputs never surface a URL — keep it that way; if
-you add a citation of any kind here, make sure it isn't a link the user
-might try to open.
+This port was written without live SSH access to RIKYU — from its official
+documentation only, per PORTING.md §1's instruction to prefer a real login
+node smoke path when available, which wasn't available here. Two
+consequences worth flagging to whoever runs PORTING.md §9's validation:
 
-Docs search uses BGE-M3 (`bge-m3:567m`) served at
-`http://llm.ai.r-ccs.riken.jp:11434/v1` — both are hardcoded constants
-(`EMBED_BASE_URL` / `EMBED_MODEL` in `config.py`). The only user-facing
-setting is `api_key` (`RIKYU_EMBED_API_KEY`). Without it, search falls back
-to BM25 — true of the currently-committed index, since no embedding key was
-available when it was last built.
-
-**Do not make model or base_url user-configurable.** `embeddings.npy` (when
-present) is tied to `bge-m3:567m`; using a different model at query time
-silently produces garbage results. If the model ever changes, update the
-constants, re-run ingest, and commit the new `embeddings.npy`.
-
-`rag/embed.py` is the only file that knows the API dialect.
-
-**To rebuild the index after editing the guide:** run
-`python -m rikyu_mcp.rag.ingest` from `server/` — produces
-`server/rikyu_mcp/data/docs_index/embeddings.npy` alongside `chunks.json`
-when an embedding key is configured (otherwise it writes a BM25-only index
-and says so). Commit both/either as package data so the uv-installed server
-works without a network round-trip to re-embed.
-
-## Development workflow
-
-```bash
-cd server
-python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
-./run.sh rikyu_mcp.doctor          # validate config, SSH, Slurm, endpoint, index
-.venv/bin/python tests/smoke.py    # live read-only test over MCP stdio
-.venv/bin/python tests/smoke.py --job   # + submits a real 5-min 1-GPU job
-.venv/bin/python -m rikyu_mcp.rag.ingest  # rebuild docs index (embeds if configured)
-```
-
-- The smoke tests need working cluster access; `--job` consumes a (tiny)
-  allocation. Run the read-only test for most changes; run `--job` when
-  touching `compute.py`, `middleware.py`, or `models.py`.
-- Test the plugin in Claude Code:
-  `/plugin marketplace add <repo-path>` → `/plugin install rikyu@rikyu-marketplace`.
-- Test the plugin in Codex:
-  `codex plugin marketplace add <repo-path>` → open `/plugins` and install `rikyu`.
-- Validate the install-path runtime with:
-  `uv tool run --quiet --from ./server rikyu-doctor`. The marketplace runtime
-  uses the same package boundary, but from GitHub `main`.
-- User settings live in `~/.rikyu/config.json` (may contain an embedding API
-  key — never commit it, never echo the key). The `rikyu-configuring` skill
-  documents the schema.
-- The docs RAG indexes the bundled `rikyu_guide.md` (see "Documentation
-  search (RAG)" above). The embedding endpoint is any OpenAI-compatible
-  `/v1/embeddings` server; with none configured, search falls back to BM25.
-  `rag/embed.py` is the only file that knows the dialect.
+- **`has_accounting=True` is corroborated by `hpc-agent-core` itself**
+  (its `SlurmBackend` docstring lists Rikyu by name as verified), so this
+  is the one guess in this port with independent confirmation — still,
+  confirm a real `sacct` call actually returns data before fully trusting
+  job-history features, per PORTING.md §1's general caution about
+  accounting being possible to have installed but disabled.
+- **`docs_cite_url` was left blank deliberately**, not by default inertia.
+  RIKYU's docs site (`docs.r-ccs.riken.jp/rikyu/en/`) is plausibly stable,
+  but RIKYU itself is mid-Early-Access (through September 2026) and the
+  site's long-term URL structure hasn't been observed to hold steady over
+  time from here — PORTING.md §3's bar is "confident it'll still be there
+  next month," which wasn't met. Revisit this once the machine (and its
+  docs site) has been in production long enough to trust.
+- **The Codex plugin manifest (`plugins/rikyu/.codex-plugin/plugin.json`,
+  `.agents/plugins/marketplace.json`) mirrors the Claude Code manifest
+  shape by analogy** — no authoritative Codex plugin schema was available
+  to verify against while writing this. Check it against Codex's actual
+  plugin docs before relying on Codex-side installation; the Claude Code
+  manifests (`.claude-plugin/`) are the ones built from an established
+  pattern and are more trustworthy as written.
+- **PORTING.md §9's real-job validation has not been run.** `doctor` and
+  `tests/smoke.py` (including `--job`) need real SSH access to RIKYU to
+  mean anything — see the repo's README for how to run them once that
+  access exists. Passing these for the first time is the actual completion
+  criterion for this port, not anything checked in so far.
 
 ## Repository map
 
 ```
-.claude-plugin/        Claude Code marketplace manifest
-.agents/plugins/       Codex marketplace manifest
-plugins/rikyu/         actual plugin payload for both Claude Code and Codex
-  .claude-plugin/      Claude Code plugin manifest
-  .codex-plugin/       Codex plugin manifest
-  .mcp.json            shared MCP launch config (uv tool run from main)
-  skills/              rikyu-configuring, rikyu-submitting-jobs,
-                       rikyu-monitoring-jobs, rikyu-reference, rikyu-demo
-IRI_CHECKLIST.md       API coverage tracker — keep in sync with hpc_server.py
-server/rikyu_mcp/
-  data/                packaged static facts and docs_index
-  middleware.py        SSH layer — the only place that talks to the cluster
-  models.py            PSI/J-style schemas + Slurm state normalization
-  compute.py           JobSpec → sbatch, sacct/squeue parsing
-  hpc_server.py        rikyu-hpc MCP tools (IRI-grouped)
-  docs_server.py       rikyu-docs MCP tools
-  rag/                 embed client / index store / ingest pipeline
-  doctor.py            health checks (python -m rikyu_mcp.doctor)
-  serving.py           shared CLI entry point
+.claude-plugin/marketplace.json         Claude Code marketplace manifest
+.agents/plugins/marketplace.json        Codex marketplace manifest (see caveat above)
+plugins/rikyu/
+  .claude-plugin/plugin.json            Claude Code plugin manifest
+  .codex-plugin/plugin.json             Codex plugin manifest
+  .mcp.json                             launches rikyu-hpc-server / rikyu-docs-server
+  skills/rikyu-{configuring,submitting-jobs,monitoring-jobs,reference,demo}/SKILL.md
+server/
+  pyproject.toml                        depends on hpc-agent-core>=0.3,<0.4
+  rikyu_mcp/
+    config.py                           configure() registration + load_cluster_config()
+    compute.py                          SlurmBackend construction
+    hpc_server.py                       the IRI-grouped MCP tool surface (see IRI_CHECKLIST.md)
+    docs_server.py, doctor.py           thin wrappers over hpc_agent_core
+    data/
+      rikyu_config.json                 static machine facts (partitions, storage, modules, spack)
+      rikyu_guide.md                    hand-written guide, chunked by rag/ingest.py
+      docs_index/                       generated: chunks.json (+ embeddings.npy)
+  tests/smoke.py                        read-only MCP stdio test; --job submits a real job
+docs/                                    source PDFs (reference only, not shipped)
+IRI_CHECKLIST.md                        endpoint-by-endpoint coverage
+PORTING.md                              the general porting guide this repo follows
 ```
-
-Skill names are machine-prefixed so this and the Hokusai plugin can be
-installed at once without collisions.

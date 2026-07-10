@@ -1,151 +1,162 @@
-# Rikyu
+# RIKYU Orientation Guide
 
-An original, plain-language orientation to the RIKEN Supercomputer RIKYU,
-written for users who drive it through RikyuAgent. It records the
-site-specific facts that shape how you ask for work — not general HPC/Linux
-background, and not a command reference. Stable facts (hardware shape, the
-partition model, storage limits) are stated here so the agent can size a job
-without a round-trip; genuinely changing values (queue occupancy, installed
-Spack packages, your billing balance) are left to the live system, which the
-agent queries on demand.
+RIKYU is a RIKEN Center for Computational Science (R-CCS) supercomputer
+built for AI-accelerated scientific discovery. It is currently in Early
+Access Phase 2 (running through the end of September 2026) — expect the
+software stack and policies to still be settling, and re-verify anything
+here that seems to have changed before trusting it blindly.
 
-As of mid-2026 the system is in **Early Access Phase 2**, RIKYU's production
-trial period (running through the end of September 2026) — expect some
-policy details (billing, allocation rules) to still be settling.
+## System shape
 
-## What Rikyu is
+400 compute nodes, each an NVIDIA GB200 NVL4: two Grace CPUs and four B200
+GPUs per node, wired together with cache-coherent NVLink-C2C, so a CPU can
+address GPU memory and vice versa without an explicit copy. That coherency
+is the reason job memory limits below are described as a combined CPU+GPU
+figure rather than two separate numbers.
 
-Rikyu is a GPU-first supercomputer at the RIKEN Center for Computational
-Science: 400 compute nodes, each an NVIDIA GB200 NVL4 — 2 Grace CPUs (aarch64)
-paired with 4 B200 GPUs, tied together by NVLink-C2C so the CPU and GPU share
-a coherent memory space. Aggregate performance is about 64 PFLOPS at FP64 and
-15.5 EFLOPS at FP8. Nodes are linked by an InfiniBand XDR fat-tree network;
-jobs confined to one leaf switch's worth of nodes communicate fastest, while
-jobs that span many nodes may cross spine switches and see more variable
-latency under heavy simultaneous traffic.
+There are 1,600 GPUs in the machine total. Nodes are wired in a two-layer
+Fat Tree (6 spine switches, 17 leaf switches, InfiniBand XDR). Nodes under
+the same leaf switch talk to each other faster than nodes that have to
+cross a spine switch — for large multi-node jobs where placement matters,
+keep this in mind, though the scheduler does not currently expose a way to
+request leaf-local placement explicitly.
 
-The practical consequence: this is a GPU-first, aarch64 machine — describe
-jobs in terms of GPUs, not CPU cores, and double-check that any prebuilt
-binary, container, or Python wheel actually targets aarch64 (x86_64 builds
-will not run).
+## Getting in
 
-## Getting on the system
+Two ways to reach the machine: the Open OnDemand web portal, or SSH
+directly to `login.rikyu.r-ccs.riken.jp`. SSH access requires registering a
+public key first, which is done through Open OnDemand (launch its "SSH
+Public Key" app) — there is no separate email-an-admin process. Generate an
+Ed25519, NIST P-521 ECDSA, or 2048-bit-or-larger RSA key pair before you
+start; RIKYU doesn't hand you one.
 
-Two ways in: the **Open OnDemand** web portal, or **SSH** to
-`login.rikyu.r-ccs.riken.jp`. Either way you end up submitting jobs through
-Slurm and reading/writing the same shared storage.
+Accounts go through the RIKYU Account Application System (RAAS), and are
+currently limited to ARiSE users, accepted SPReAD1000 projects, and RIKEN
+members. If you're carrying over an account from Early Access Phase 1, you
+still need to file a fresh application — old accounts don't roll forward,
+and Phase 1 data does not migrate itself, so move anything you need before
+your Phase 1 access lapses.
 
-SSH access needs a registered public key — generate one locally (Ed25519 is
-recommended; ECDSA P-521 or RSA ≥2048-bit also work) and register it through
-Open OnDemand's "SSH Public Key" page before your first SSH login. There is no
-password authentication.
+## Slurm
 
-An account requires applying through the RIKYU Account Application System
-(RAAS); eligibility during Early Access Phase 2 is limited to ARiSE users,
-accepted SPReAD1000 projects, and RIKEN members, and project representatives
-must separately register the project and its members. Anyone continuing from
-Early Access Phase 1 must re-apply — old accounts are kept only long enough to
-migrate data by hand and cannot run jobs.
+RIKYU has exactly one partition, `gpu`, covering all 400 nodes — there's no
+separate CPU-only or debug partition to choose between. Request GPUs with
+`--gpus=N`, not `--gres=gpu:N`; RIKYU uses the job-total-count dialect. You
+do not need to (and normally should not) set `--nodes` yourself — Slurm
+derives the node count from the GPU count automatically, at 4 GPUs per
+node. `--account` is not part of the job scripts this system expects,
+unlike some other RIKEN machines — leave it out unless told otherwise.
 
-## Billing
+Standard `sbatch`/`squeue`/`salloc`/`srun`/`scancel`/`sinfo` all work as
+expected. Slurm accounting (`sacct`) is available on RIKYU, so job history
+beyond what's currently queued or running is queryable, not just the live
+queue.
 
-Usage is billed by GPU-hour (300 yen/GPU-hour as of Early Access Phase 2,
-consumption tax separate), billed in arrears as a lump sum after the phase
-ends. There's a billing dashboard for checking current usage — ask the agent
-to point you to it rather than tracking spend by hand.
+## Job resource limits
 
-## Running jobs
+Only seven GPU counts are accepted per job: 1, 2, 3, 4, 8, 12, or 16 — there
+is no arbitrary N. Everything else about a job's resource ceiling follows
+from that count at a fixed rate of 4 GPUs per node:
 
-Rikyu schedules with Slurm and has a **single GPU partition**. You do not pick
-a partition to get a certain number of GPUs — you ask for the GPU count
-directly with `--gpus=N`, and Slurm places the job on however many nodes that
-needs. Only specific counts are accepted: **1, 2, 3, or 4 GPUs** fit on a
-single node; **8, 12, or 16** span 2, 3, or 4 nodes respectively (always 4
-GPUs per node). Each GPU brings a fixed, proportional share of the node: 36
-CPU cores and roughly 400 GB of combined CPU+GPU-addressable memory (GPU
-memory itself is 173 GiB per GPU; the rest is CPU-side LPDDR5X, reachable from
-the GPU over NVLink-C2C but with different performance characteristics —
-don't assume the two are interchangeable for bandwidth-sensitive code).
+- 1–4 GPUs fit on a single node (36 CPU cores and 400 GB combined
+  memory per GPU requested, up to a max of 144 cores / 1,600 GB at 4 GPUs).
+- 8, 12, and 16 GPUs span 2, 3, and 4 nodes respectively, each node capped
+  at 144 CPU cores and roughly 1,600 GB combined memory.
 
-Wall time is capped at 96 hours regardless of GPU count; have the agent
-confirm the current default if you don't set one explicitly. Have the agent
-submit through `sbatch`, check with `squeue`/`sacct`, and cancel with
-`scancel` — you describe the job in resource terms and it handles the script.
+The "combined memory" figure is CPU DRAM plus usable GPU HBM added
+together, reflecting the NVLink-C2C coherency mentioned above — it is not a
+number you'd see on a machine where CPU and GPU memory are separate pools.
+
+Every job, regardless of size, is capped at a 96-hour wall time — there is
+no separate short-queue/long-queue split with different limits.
 
 ## Storage
 
-Three tiers, each with a different purpose and a real capacity limit:
+Three tiers, each with a different purpose:
 
-- **Home** (`/home/<user>`) — 5 GB, Lustre, yours alone. Configuration and
-  small scripts, not datasets.
-- **Group** (`/data1/<group>`) — 1 TB per group, Lustre, shared read/write
-  among everyone in that group. The right place for shared datasets and
-  results; a single user may belong to more than one group.
-- **Scratch** (`/tmp` on the compute node) — 1.5 TB per requested GPU, local
-  xfs, visible only to the job that's running. Fast, but wiped the moment the
-  job ends — copy anything worth keeping back to home or group storage before
-  the job finishes.
+- **Home** (`/home/USERNAME`, 5 GB, Lustre, SSD-backed): your own small
+  files, dotfiles, and configuration only. 5 GB is genuinely small — do not
+  stage datasets, checkpoints, or build artifacts here; use the group area
+  for anything beyond a trivial size, and check quota live
+  (`lfs quota -h -p ...`) before assuming there's room for something new.
+- **Group** (`/data1/GROUPNAME`, 1 TB per group, Lustre, HDD-backed):
+  shared work files for everyone in your Unix group. Find your group name
+  from `id` — it's the entry starting with `rkp`. Both home and group are
+  visible from both login and compute nodes, so this — not home — is where
+  inputs, outputs, datasets, and anything that needs to survive past one job
+  should actually live.
+- **Scratch** (`/tmp`, 1.5 TB per requested GPU, xfs, node-local NVMe): only
+  visible to the job actually running on that node, and wiped the moment
+  the job ends. Good for intermediate files during a run; never for
+  anything you need afterward. Copy results to home or group storage before
+  the job exits.
 
-Home and group storage sit on the same shared Lustre filesystem (2 PB
-high-speed SSD backing home, 10 PB bulk HDD backing group), so both are
-reachable from login nodes too, and both can request a capacity increase
-through a support ticket if you outgrow the default.
+Capacity increases for home or group storage go through a support ticket,
+not a self-service command.
 
 ## Software: modules and Spack
 
-Two complementary systems, and it matters which one a piece of software comes
-from:
+Compiler/MPI environments are Lmod modules, all variants of the NVIDIA HPC
+SDK: `nvhpc` (the standard choice, includes MPI), `nvhpc-nompi` (bring your
+own MPI), `nvhpc-hpcx` / `nvhpc-hpcx-cuda13` (HPC-X MPI over InfiniBand,
+the latter pinned to CUDA 13), and `nvhpc-byo-compiler` (use the system GCC
+or your own compiler instead of NVIDIA's). Run `module purge` before
+loading what you need, to avoid stale environment leftovers from a previous
+module load in the same shell.
 
-- **Environment modules** (Lmod) give you the **NVIDIA HPC SDK** compiler
-  toolchains: `nvhpc` (standard, includes MPI), `nvhpc-nompi` (bring your own
-  MPI), `nvhpc-hpcx` (HPC-X MPI over InfiniBand), `nvhpc-hpcx-cuda13` (same,
-  CUDA pinned to 13), and `nvhpc-byo-compiler` (use the system GCC instead of
-  NVIDIA's compilers). Have the agent list current versions live rather than
-  assuming one.
-- **Spack** provides prebuilt **applications and libraries** — things like
-  `quantum-espresso`, `gromacs`, `lammps`, plus a large catalogue of
-  scientific Python, visualization, and dev tooling. Loading Spack's
-  environment (`spack load <package>`) sets up `PATH` for that application;
-  GPU-enabled builds exist for `petsc`, `lammps`, `quantum-espresso`,
-  `gromacs`, and `kokkos`, and `quantum-espresso`/`gromacs` additionally have
-  HPC-X-MPI-aware builds for multi-node runs. Requesting Spack GPU software
-  does **not** by itself allocate GPUs — the Slurm `--gpus=` request still
-  has to be made alongside it.
+Applications and libraries (cp2k, GROMACS, Quantum ESPRESSO, LAMMPS,
+PETSc, and dozens more scientific/Python packages) are managed with Spack,
+not modules. The system-provided ("public instance") Spack environment is
+loaded with `. /shared/software/spack-1.2.0/share/spack/setup-env.sh`
+(bash/zsh) or the `.csh` equivalent for csh/tcsh — this line has to be
+repeated inside any batch script that uses Spack software, since a job
+script doesn't inherit your interactive shell's sourced environment.
+`spack load <package>` then puts it on `PATH`. Loading a GPU-enabled
+package does *not* by itself reserve GPUs — you still need `#SBATCH
+--gpus=N` in the job script for the hardware to actually be allocated.
 
-If a package you need isn't in the shared (public) Spack instance, you can
-build your own in a private instance under your home directory and chain it
-to the public one so you're not rebuilding shared dependencies from scratch —
-have the agent walk you through this only when the public catalogue genuinely
-doesn't cover what you need, since it's slower and more involved than using
-what's already built.
+A handful of packages (currently petsc, lammps, quantum-espresso, gromacs,
+kokkos) are built with GPU support, and quantum-espresso and gromacs
+specifically are also built against `hpcx-mpi` for InfiniBand-native MPI.
+When more than one build of the same package exists (different compiler,
+MPI, or GPU variant), Spack disambiguates by hash — `spack find -lx
+<name>` shows the short hash for each candidate, and `spack load /<hash>`
+picks one unambiguously. The list of what's pre-built can change as the
+system evolves; treat the package names above as a starting point and
+confirm against `spack find -x` before assuming something is or isn't
+available.
 
-## Bringing your own environment with containers
+Users who need software outside the public instance (a different version,
+custom build flags, or a package the system doesn't provide) build their
+own "private instance" of Spack under their home directory, optionally
+chained to the public instance's `install_tree` via `upstreams.yaml` so
+shared dependencies don't have to rebuild from scratch. Never build
+anything heavy on a login node — use an interactive job (`salloc`/`srun`)
+or submit a build as its own batch job.
 
-Singularity is available for carrying a specific software stack onto Rikyu.
-Point the agent at a `.sif` image (built yourself or pulled from a registry)
-and it runs your program inside it; GPU passthrough (`--nv`) is added
-automatically whenever the job also requests GPUs.
+## Common failure modes
 
-## Following jobs and untangling failures
+- **`spack: command not found`** — the Spack `setup-env.sh` line was never
+  sourced in this shell (or this job script). Re-source it.
+- **`matches multiple packages` from `spack load`** — more than one build
+  of that name is installed; disambiguate with a hash from `spack find -lx
+  <name>`, e.g. `spack load /5rny4xu`.
+- **An MPI job won't start, or errors during communication** — the MPI
+  implementation the application was built against doesn't match what's
+  actually being launched at runtime. Confirm what an application was built
+  with via `spack spec /<hash>` (look for `^hpcx-mpi` in the dependency
+  tree) before assuming the MPI stack itself is broken.
+- **Software works interactively but not inside a batch job** — the job
+  script forgot to re-source Spack's `setup-env.sh`; sourcing it once in an
+  interactive login shell does not carry into `sbatch` scripts.
+- **A GPU job runs but the application can't see any GPU** — the Slurm
+  request is missing `--gpus=N`; loading GPU-enabled software through Spack
+  does not itself allocate hardware.
 
-Ask the agent for a job's state, queue reason, and history rather than
-memorizing Slurm's own state names — it normalizes them for you. Console
-output lands in `slurm-<jobid>.out` in the job's working directory.
+## Billing
 
-Common failure causes on Rikyu:
-
-- An aarch64/x86_64 mismatch — a binary, container, or Python wheel built for
-  x86_64 fails immediately with an "exec format" style error.
-- Running out of the per-GPU memory share — request more GPUs (which scales
-  both CPU and memory together) rather than only adding `--mem`.
-- Hitting the 96-hour wall-time ceiling on a long run.
-- Scratch data lost because it wasn't copied out of `/tmp` before the job
-  ended.
-
-## Staying current
-
-Rikyu is in active early-access rollout, so partition rules, Spack packages,
-and account/billing policy can all still change. The agent's live queries
-(current queue state, installed Spack packages, module versions) are always
-more current than anything written here — lean on those, and fall back to
-RIKEN R-CCS support for anything this guide doesn't cover.
+Usage is metered per GPU-hour (300 yen/GPU-hour as of Early Access Phase 2,
+billed in arrears as a lump sum after the phase ends — this rate is a
+policy detail, not a technical one, so confirm it hasn't changed before
+relying on it for planning). Current usage is visible through the billing
+system linked from Open OnDemand, not from a command-line tool.
