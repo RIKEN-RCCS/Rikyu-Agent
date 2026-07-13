@@ -26,7 +26,9 @@ every hpc-agent-core plugin):
 
 - `ssh.host` is a `~/.ssh/config` alias or `user@login.rikyu.r-ccs.riken.jp`
   (key-based auth required — register your key via Open OnDemand's "SSH
-  Public Key" app first). `RIKYU_HOST` overrides the file.
+  Public Key" app first), or `"localhost"` if the agent is running directly
+  on a Rikyu front-end node (no SSH needed at all). `RIKYU_HOST` overrides
+  the file.
 - A legacy `~/.rikyu/config.json` is still read if it's the only config
   present.
 
