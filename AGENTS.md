@@ -127,7 +127,7 @@ server/
       rikyu_config.json                 static machine facts (partitions, storage, modules, spack)
       rikyu_guide.md                    hand-written guide, chunked by rag/ingest.py
       docs_index/                       generated: chunks.json (+ embeddings.npy)
-  tests/smoke.py                        read-only MCP stdio test; --job submits a real job
+  tests/smoke.py                        tiered MCP stdio test: --offline, read-only, --job
 docs/                                    source PDFs (reference only, not shipped)
 IRI_CHECKLIST.md                        endpoint-by-endpoint coverage
 ```
