@@ -223,3 +223,51 @@ set — it is never a Success Gate for this campaign, per the billing guardrail.
   not present in this worktree — `git ls-files server/tests` shows exactly one
   tracked file, `smoke.py`. Nothing to clean up; noted here only so the next
   reader isn't surprised the warning didn't reproduce.
+
+## Live Read-Only Verification Evidence
+
+Recorded against RIKYU via `ssh.host = ai4s-r2` (`login.rikyu.r-ccs.riken.jp`,
+landing on `c000`). Every command below is read-only; no job was submitted and
+the queue was empty before and after (`squeue -u $USER` → empty, both times).
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Health | `python -m rikyu_mcp.doctor` | all `✓`: config, ssh (`c000`), `slurm 25.11.5`, guide, 9-chunk docs index, live embedding `bge-m3:567m` (dim 1024) |
+| Read-only E2E | `python tests/smoke.py` | `passed=2 failed=0 skipped=1` (job tier skipped, named) |
+| Tool surface | (offline tier within the run) | 26 hpc tools, 3 docs tools; `submit_job` `$defs`: `Container`, `JobAttributes`, `JobSpec`, `ResourceSpec`, `Scheduler`, `VolumeMount` |
+| Live resources | `get_resources` (SSH + sinfo) | one partition `gpu`, `up`, time limit `4-00:00:00`, nodes allocated 47 / idle 235 / other 31 / total 313 |
+| SSH round trip | `run_command_on_cluster('hostname')` | `c000` |
+| Recent jobs | `get_job_statuses([])` (SSH + sacct) | `[]` — an empty result on a quiet queue, confirming the R4 fixture assumption that this call can legitimately return an empty list |
+
+### Accounting (`has_accounting=True`) — confirmed configured and functional
+
+`get_job_statuses([])` returning `[]` does not by itself distinguish "accounting
+enabled, no recent jobs" from "accounting disabled". Two direct read-only probes
+settle it:
+
+- `sacctmgr -n -p show cluster format=Cluster` → `ai4s` — a cluster is registered
+  with the accounting database, so slurmdbd/accounting is configured.
+- `sacct -a -X --starttime now-3days --format=JobID,User,State --parsable2` →
+  the header row `JobID|User|State` with zero data rows — `sacct` is functional
+  and reachable, and the empty `get_job_statuses([])` reflects an empty query
+  window, not a disabled accounting subsystem.
+
+Verdict: `SlurmBackend(has_accounting=True)` is correct. Job-history *data* was
+not observed (none recorded in the window), so that path will only be exercised
+once jobs have run; the accounting *subsystem* itself is confirmed present.
+
+### Observation for a later cycle (not acted on here)
+
+Live `sinfo` reports the `gpu` partition total as **313** nodes; `rikyu_config.json`
+and `AGENTS.md` document **400** (the full GB200 NVL4 build). The difference is
+consistent with an Early-Access phase where not all nodes are yet in the
+controller's view, and static facility facts are sourced from the official docs
+by design. Flagged here for whoever revisits facility facts post-EA; out of scope
+for this campaign, which does not touch `rikyu_config.json`.
+
+### Plugin round trip
+
+Both servers are started over stdio and register their full tool sets within the
+smoke run above — the same stdio transport an MCP client uses to connect — so the
+`rikyu-hpc` (26 tools) and `rikyu-docs` (3 tools) surfaces are confirmed reachable
+by a client, which is the path that returned zero tools before the floor fix.

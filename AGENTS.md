@@ -77,15 +77,9 @@ auto-refetches a live site.
 
 This port was written without live SSH access to RIKYU — from its official
 documentation only, per PORTING.md §1's instruction to prefer a real login
-node smoke path when available, which wasn't available here. Two
-consequences worth flagging to whoever runs PORTING.md §9's validation:
+node smoke path when available, which wasn't available here. Consequences
+worth flagging to whoever runs PORTING.md §9's validation:
 
-- **`has_accounting=True` is corroborated by `hpc-agent-core` itself**
-  (its `SlurmBackend` docstring lists Rikyu by name as verified), so this
-  is the one guess in this port with independent confirmation — still,
-  confirm a real `sacct` call actually returns data before fully trusting
-  job-history features, per PORTING.md §1's general caution about
-  accounting being possible to have installed but disabled.
 - **`docs_cite_url` was left blank deliberately**, not by default inertia.
   RIKYU's docs site (`docs.r-ccs.riken.jp/rikyu/en/`) is plausibly stable,
   but RIKYU itself is mid-Early-Access (through September 2026) and the
