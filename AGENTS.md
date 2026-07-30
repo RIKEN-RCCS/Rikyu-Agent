@@ -34,6 +34,10 @@ cluster facts, decisions made under uncertainty, and the repo map.
 6. **Never invent a documentation URL.** `docs_cite_url` is deliberately
    blank (see "Decisions made under uncertainty" below) — don't add one
    back into a skill or tool description.
+7. **Never import the MCP SDK directly.** Server construction comes from
+   `hpc_agent_core.mcp_server`. Keeping that import in one place in core
+   means an SDK API change is a one-file fix there, not an edit in every
+   machine repo.
 
 ## RIKYU cluster facts
 
@@ -65,6 +69,9 @@ auto-refetches a live site.
   `/shared/software/spack-1.2.0/share/spack/setup-env.sh`) for applications.
 - **Login**: `login.rikyu.r-ccs.riken.jp`; key registration via Open
   OnDemand's "SSH Public Key" app, not email-an-admin.
+- **Billing**: RIKYU compute is billed to the user's project, so a job
+  submission needs explicit user confirmation before it runs — this is why
+  design rule 5 ("Show before you run") matters most here.
 
 ## Decisions made under uncertainty
 
@@ -110,7 +117,7 @@ plugins/rikyu/
   .mcp.json                             launches rikyu-hpc-server / rikyu-docs-server
   skills/rikyu-{configuring,submitting-jobs,monitoring-jobs,reference,demo}/SKILL.md
 server/
-  pyproject.toml                        depends on hpc-agent-core>=0.3,<0.4
+  pyproject.toml                        depends on hpc-agent-core>=0.4.6,<0.5
   rikyu_mcp/
     config.py                           configure() registration + load_cluster_config()
     compute.py                          SlurmBackend construction
