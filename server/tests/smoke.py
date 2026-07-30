@@ -9,11 +9,17 @@
     python tests/smoke.py             # offline tier, then the read-only
                                        # tier: adds SSH round trips against
                                        # live RIKYU (sinfo, sacct, hostname)
-    python tests/smoke.py --job       # + submits a real 1-GPU job and
+    python tests/smoke.py --job --confirm-billing
+                                       # + submits a real 1-GPU job and
                                        # prints its job ID (does not wait
                                        # for it to finish or clean it up —
                                        # check on it and scancel/let it run
-                                       # to completion yourself)
+                                       # to completion yourself). RIKYU
+                                       # compute is billed with no usage
+                                       # limit configured, so --job alone
+                                       # refuses and exits non-zero without
+                                       # constructing a client or touching
+                                       # SSH.
 
 A passing run here (and a passing `python -m rikyu_mcp.doctor`) is not
 proof the port works end to end against RIKYU's live scheduler — see
@@ -44,6 +50,8 @@ _REQUIRED_HPC_TOOLS = {
 }
 _REQUIRED_DOCS_TOOLS = {"search_docs", "list_doc_sections", "read_doc_section"}
 _REQUIRED_SUBMIT_JOB_DEFS = {"Container", "JobAttributes", "ResourceSpec", "VolumeMount"}
+
+_CONFIRM_FLAG = "--confirm-billing"
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +261,7 @@ async def _run(args: argparse.Namespace, summary: Summary) -> None:
         await _run_tier(summary, "read-only", _read_only_tier())
 
     if not args.job:
-        summary.skip("job", "not requested; pass --job to submit and bill compute")
+        summary.skip("job", f"not requested; pass --job {_CONFIRM_FLAG} to submit and bill compute")
     elif not summary.all_passed:
         summary.skip("job", "an earlier tier failed")
     else:
@@ -265,8 +273,21 @@ def main() -> int:
     parser.add_argument("--offline", action="store_true",
                          help="Run only the offline tier: no SSH, no live cluster required.")
     parser.add_argument("--job", action="store_true",
-                         help="Also submit a real 1-GPU job (nvidia-smi, 5 min wall time).")
+                         help=f"Also submit a real 1-GPU job (nvidia-smi, 5 min wall time). "
+                              f"Billable — requires {_CONFIRM_FLAG} as well.")
+    parser.add_argument(_CONFIRM_FLAG, action="store_true",
+                         help="Required alongside --job to actually submit a billable job on RIKYU compute.")
     args = parser.parse_args()
+
+    if args.job and not args.confirm_billing:
+        print(
+            f"Refusing to submit: --job was given without {_CONFIRM_FLAG}.\n"
+            "RIKYU compute is billed and this project has no usage limit configured, so "
+            f"submitting a job requires both flags together: --job {_CONFIRM_FLAG}.\n"
+            "No client was constructed and no SSH connection was attempted.",
+            file=sys.stderr,
+        )
+        return 1
 
     summary = Summary()
     asyncio.run(_run(args, summary))
