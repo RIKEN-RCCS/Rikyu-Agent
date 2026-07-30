@@ -33,8 +33,36 @@ _REQUIRED_HPC_TOOLS = {
 _REQUIRED_DOCS_TOOLS = {"search_docs", "list_doc_sections", "read_doc_section"}
 
 
-def _text(result) -> str:
-    return result.content[0].text if result.content else ""
+async def call(session: ClientSession, name: str, args: dict | None = None):
+    """Perform a tool call and assert it did not error.
+
+    Raises with the server's own error text included, so the diagnosis is in
+    the failure message rather than a separate log line.
+    """
+    result = await session.call_tool(name, args or {})
+    if result.is_error:
+        detail = "".join(getattr(block, "text", "") for block in result.content)
+        raise AssertionError(f"{name} failed: {detail or '(server returned no error detail)'}")
+    return result
+
+
+def payload(result):
+    """Return a tool result's actual value.
+
+    Prefers `structured_content`; only falls back to the joined content-block
+    text when it is absent (the MCP surface leaves it unset for return types
+    it can't derive an output schema for, e.g. a bare `dict` annotation).
+    Non-object return types are wire-wrapped as `{"result": ...}`; that
+    wrapper is unwrapped here so an empty list reads as an empty list rather
+    than as a truthy one-key dict, and nothing downstream ever hands an empty
+    string to `json.loads`.
+    """
+    value = result.structured_content
+    if value is not None:
+        if isinstance(value, dict) and value.keys() == {"result"}:
+            return value["result"]
+        return value
+    return "".join(getattr(block, "text", "") for block in result.content)
 
 
 async def check_docs_server() -> None:
@@ -47,12 +75,13 @@ async def check_docs_server() -> None:
             missing = _REQUIRED_DOCS_TOOLS - names
             assert not missing, f"docs server missing tools: {missing}"
 
-            sections = await session.call_tool("list_doc_sections", {})
-            assert _text(sections).strip(), "list_doc_sections returned nothing — was the docs index built?"
-            print(f"[docs] list_doc_sections: {len(_text(sections).splitlines())} sections")
+            sections = await call(session, "list_doc_sections", {})
+            section_str = str(payload(sections))
+            assert section_str.strip(), "list_doc_sections returned nothing — was the docs index built?"
+            print(f"[docs] list_doc_sections: {len(section_str.splitlines())} sections")
 
-            results = await session.call_tool("search_docs", {"query": "gpu request slurm partition", "top_k": 2})
-            assert _text(results).strip(), "search_docs returned nothing"
+            results = await call(session, "search_docs", {"query": "gpu request slurm partition", "top_k": 2})
+            assert str(payload(results)).strip(), "search_docs returned nothing"
             print("[docs] search_docs: OK")
 
 
@@ -67,24 +96,25 @@ async def check_hpc_server(submit_job: bool) -> None:
             assert not missing, f"hpc server missing tools: {missing}"
             print(f"[hpc] {len(names)} tools registered")
 
-            facility = await session.call_tool("get_facility", {})
-            assert _text(facility).strip(), "get_facility returned nothing"
+            facility = await call(session, "get_facility", {})
+            assert str(payload(facility)).strip(), "get_facility returned nothing"
             print("[hpc] get_facility: OK (no SSH required)")
 
             # get_resources is a live sinfo query (not static config), so
             # this is the first real SSH round trip in this test, despite
             # being grouped with the facility checks above.
-            resources = await session.call_tool("get_resources", {})
-            assert "gpu" in _text(resources), "get_resources should list the 'gpu' partition"
-            print(f"[hpc] get_resources (SSH + sinfo): {_text(resources)[:200]!r}")
+            resources = await call(session, "get_resources", {})
+            resources_str = str(payload(resources))
+            assert "gpu" in resources_str, "get_resources should list the 'gpu' partition"
+            print(f"[hpc] get_resources (SSH + sinfo): {resources_str[:200]!r}")
 
             # First real SSH round trips: recent-jobs query and a harmless
             # login-node command.
-            statuses = await session.call_tool("get_job_statuses", {"job_ids": []})
-            print(f"[hpc] get_job_statuses([]) (SSH + sacct): {_text(statuses)[:200]!r}")
+            statuses = await call(session, "get_job_statuses", {"job_ids": []})
+            print(f"[hpc] get_job_statuses([]) (SSH + sacct): {str(payload(statuses))[:200]!r}")
 
-            hostname = await session.call_tool("run_command_on_cluster", {"command": "hostname"})
-            print(f"[hpc] run_command_on_cluster('hostname') (SSH): {_text(hostname).strip()!r}")
+            hostname = await call(session, "run_command_on_cluster", {"command": "hostname"})
+            print(f"[hpc] run_command_on_cluster('hostname') (SSH): {str(payload(hostname)).strip()!r}")
 
             if submit_job:
                 spec = {
@@ -93,8 +123,8 @@ async def check_hpc_server(submit_job: bool) -> None:
                     "resources": {"gpus": 1},
                     "attributes": {"duration": "00:05:00"},
                 }
-                submitted = await session.call_tool("submit_job", {"spec": spec})
-                print(f"[hpc] submit_job: {_text(submitted)}")
+                submitted = await call(session, "submit_job", {"spec": spec})
+                print(f"[hpc] submit_job: {payload(submitted)}")
                 print("[hpc] NOTE: this job is now queued/running on RIKYU — check its "
                       "status and cancel it yourself if you don't want it to run to completion.")
 
