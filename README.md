@@ -145,7 +145,8 @@ search outside RIKEN's network — not blocking).
 ```
 cd server
 uv run python -m rikyu_mcp.doctor          # health check
-uv run python tests/smoke.py               # read-only MCP stdio test
+uv run python tests/smoke.py --offline     # offline tier: no SSH, no cluster needed
+uv run python tests/smoke.py               # + the read-only tier against live RIKYU
 uv run python tests/smoke.py --job         # + submits a real 1-GPU job
 ```
 
