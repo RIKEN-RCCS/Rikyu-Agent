@@ -11,3 +11,5 @@ remotemanager.log
 openapi.json
 # uv tool run resolves its own dependencies; a committed lock file would drift without benefit
 server/uv.lock
+# Symlink into the sibling lbc-llm-agents monorepo; not tracked here
+__reports__/mcp_sdk_v2_migration
