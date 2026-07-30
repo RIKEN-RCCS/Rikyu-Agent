@@ -43,9 +43,9 @@ Restore a working MCP server surface on a stated `hpc-agent-core>=0.4.6` floor, 
 ## Status
 ```mermaid
 graph TD
-    dependency_floor[Dependency Floor]:::planned
-    test_definition[Test Definition Report]:::planned
-    docs_sync[Docs and Repo Config Sync]:::planned
+    dependency_floor[Dependency Floor]:::done
+    test_definition[Test Definition Report]:::done
+    docs_sync[Docs and Repo Config Sync]:::done
     validation[Validation]:::planned
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
@@ -57,9 +57,9 @@ graph TD
 ## Nodes
 | Node | Type | Status |
 |:-----|:-----|:-------|
-| `dependency_floor.md` | 📄 Leaf Task | ⬜ Planned |
-| `test_definition.md` | 📄 Leaf Task | ⬜ Planned |
-| `docs_sync.md` | 📄 Leaf Task | ⬜ Planned |
+| `dependency_floor.md` | 📄 Leaf Task | ✅ Done |
+| `test_definition.md` | 📄 Leaf Task | ✅ Done |
+| `docs_sync.md` | 📄 Leaf Task | ✅ Done |
 | `validation/` | 📁 Directory | ⬜ Planned |
 
 ## Amendment Log
