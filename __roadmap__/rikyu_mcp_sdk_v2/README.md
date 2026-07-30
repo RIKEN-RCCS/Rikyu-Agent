@@ -46,7 +46,7 @@ graph TD
     dependency_floor[Dependency Floor]:::done
     test_definition[Test Definition Report]:::done
     docs_sync[Docs and Repo Config Sync]:::done
-    validation[Validation]:::planned
+    validation[Validation]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -60,7 +60,7 @@ graph TD
 | `dependency_floor.md` | 📄 Leaf Task | ✅ Done |
 | `test_definition.md` | 📄 Leaf Task | ✅ Done |
 | `docs_sync.md` | 📄 Leaf Task | ✅ Done |
-| `validation/` | 📁 Directory | ⬜ Planned |
+| `validation/` | 📁 Directory | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |

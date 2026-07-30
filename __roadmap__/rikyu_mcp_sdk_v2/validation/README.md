@@ -30,7 +30,7 @@ Prove the repaired MCP surface, first without a cluster and then against the liv
 ```mermaid
 graph TD
     harness_and_gating[Smoke Harness and Submission Gate]:::done
-    live[Live Cluster]:::planned
+    live[Live Cluster]:::done
     classDef done       fill:#166534,color:#bbf7d0
     classDef inprogress fill:#854d0e,color:#fef08a
     classDef planned    fill:#374151,color:#e5e7eb
@@ -42,7 +42,7 @@ graph TD
 | Node | Type | Status |
 |:-----|:-----|:-------|
 | `harness_and_gating.md` | 📄 Leaf Task | ✅ Done |
-| `live/` | 📁 Directory | ⬜ Planned |
+| `live/` | 📁 Directory | ✅ Done |
 
 ## Amendment Log
 | ID | Date | Source | Nodes Added | Rationale |
