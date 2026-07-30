@@ -44,15 +44,30 @@ the source and hand-edit `server/rikyu_mcp/data/rikyu_guide.md` and
 `rikyu_config.json` — per PORTING.md §2, this repo deliberately never
 auto-refetches a live site.
 
-- **Scheduler**: Slurm, single partition `gpu`, 400 nodes, GPU vendor NVIDIA
-  only. GPU request style is job-total (`--gpus=N`, never `--gres=gpu:N`);
-  Slurm derives node count from the GPU count automatically (4 GPUs/node) —
-  no job script example in the source docs ever sets `--nodes`. `--account`
-  never appears in a job script either; treated as unused.
+- **Scheduler**: Slurm, single partition `gpu`, documented at 400 nodes (the
+  full GB200 NVL4 build), GPU vendor NVIDIA only. GPU request style is
+  job-total (`--gpus=N`, never `--gres=gpu:N`); Slurm derives node count from
+  the GPU count automatically (4 GPUs/node) — no job script example in the
+  source docs ever sets `--nodes`. `--account` never appears in a job script
+  either; treated as unused.
   `compute.py` uses `SlurmBackend(has_accounting=True, gpu_request_style="gpus_total")`
   — the plain first row of PORTING.md §6's table, and `hpc-agent-core`
   0.3.0's own `SlurmBackend` docstring names Rikyu explicitly as a verified
   `has_accounting=True` machine, so this wasn't a guess.
+  - **`has_accounting=True` is now live-confirmed**, not just inferred:
+    `sacctmgr -n -p show cluster format=Cluster` returns a registered
+    cluster (`ai4s`), and `sacct -a -X --starttime now-3days ...` returns a
+    clean header with zero data rows — accounting is configured and
+    reachable; the empty result reflects a quiet queue window, not a
+    disabled subsystem. (Verified via Eliott Jacopin's PR #4.)
+  - **Live node count is currently lower than documented**: a live
+    `sinfo` read on 2026-07-30 showed the `gpu` partition at 313 nodes, not
+    400. Expected during RIKYU's Early-Access phase (through September
+    2026) — not all nodes are in the controller's view yet. `get_resources`
+    always reads live state, so this doesn't affect correctness; noted here
+    so 313 doesn't look like a bug when you first see it. Revisit
+    `rikyu_config.json`'s documented count once RIKYU is in full
+    production. (Observed via Eliott Jacopin's PR #4 live verification.)
 - **GPU counts**: only 1, 2, 3, 4, 8, 12, 16 are accepted; `hpc_server.py`'s
   `submit_job` validates this before submission (`_validate_gpu_count`) so
   a bad count fails clearly instead of behaving unpredictably in Slurm.
@@ -68,17 +83,12 @@ auto-refetches a live site.
 
 ## Decisions made under uncertainty
 
-This port was written without live SSH access to RIKYU — from its official
-documentation only, per PORTING.md §1's instruction to prefer a real login
-node smoke path when available, which wasn't available here. Two
-consequences worth flagging to whoever runs PORTING.md §9's validation:
+This port was originally written without live SSH access to RIKYU — from
+its official documentation only, per PORTING.md §1's instruction to prefer
+a real login node smoke path when available, which wasn't available at the
+time. Live access arrived later (see the accounting/node-count facts
+above); what follows is what's still unresolved:
 
-- **`has_accounting=True` is corroborated by `hpc-agent-core` itself**
-  (its `SlurmBackend` docstring lists Rikyu by name as verified), so this
-  is the one guess in this port with independent confirmation — still,
-  confirm a real `sacct` call actually returns data before fully trusting
-  job-history features, per PORTING.md §1's general caution about
-  accounting being possible to have installed but disabled.
 - **`docs_cite_url` was left blank deliberately**, not by default inertia.
   RIKYU's docs site (`docs.r-ccs.riken.jp/rikyu/en/`) is plausibly stable,
   but RIKYU itself is mid-Early-Access (through September 2026) and the
@@ -93,11 +103,15 @@ consequences worth flagging to whoever runs PORTING.md §9's validation:
   plugin docs before relying on Codex-side installation; the Claude Code
   manifests (`.claude-plugin/`) are the ones built from an established
   pattern and are more trustworthy as written.
-- **PORTING.md §9's real-job validation has not been run.** `doctor` and
-  `tests/smoke.py` (including `--job`) need real SSH access to RIKYU to
-  mean anything — see the repo's README for how to run them once that
-  access exists. Passing these for the first time is the actual completion
-  criterion for this port, not anything checked in so far.
+- **`doctor` and `tests/smoke.py`'s read-only path are now live-verified**
+  against real RIKYU SSH (`slurm` version reported, `get_resources`
+  returning the live `gpu` partition, `run_command_on_cluster('hostname')`
+  succeeding) — via Eliott Jacopin's PR #4. **The remaining PORTING.md §9
+  gap is a real job submission**: `smoke.py --job` has still never been run
+  (RIKYU compute is billed with no usage cap, so this is intentionally
+  gated, not an oversight — see the README's `--job`/`--confirm-billing`
+  section). That's the one piece of this port's completion criterion still
+  outstanding.
 
 ## Repository map
 

@@ -1,18 +1,23 @@
 """Read-only MCP stdio smoke test for the RIKYU plugin — see PORTING.md §9.
 
-    python tests/smoke.py          # read-only: tool registration, docs
-                                    # search, get_facility, an SSH round
-                                    # trip via get_job_statuses([]) and
-                                    # run_command_on_cluster('hostname')
-    python tests/smoke.py --job    # + submits a real 1-GPU job and prints
-                                    # its job ID (does not wait for it to
-                                    # finish or clean it up — check on it
-                                    # and scancel/let it run to completion
-                                    # yourself)
+    python tests/smoke.py                                  # read-only: tool
+                                    # registration, docs search, get_facility,
+                                    # an SSH round trip via get_job_statuses([])
+                                    # and run_command_on_cluster('hostname')
+    python tests/smoke.py --job --confirm-billing   # + submits a real 1-GPU
+                                    # job and prints its job ID (does not wait
+                                    # for it to finish or clean it up — check
+                                    # on it and scancel/let it run to
+                                    # completion yourself)
+
+RIKYU compute is billed to the project with no usage limit configured, so
+--job alone refuses and exits before touching SSH — pass --confirm-billing
+alongside it to actually submit. This is a deliberate two-flag gate, not an
+oversight (see AGENTS.md's "Billing" cluster fact).
 
 A passing run here (and a passing `python -m rikyu_mcp.doctor`) is not
 proof the port works end to end — see PORTING.md §9's warning. Run with
---job at least once, with real RIKYU SSH access configured
+--job --confirm-billing at least once, with real RIKYU SSH access configured
 (~/.hpc-agent/rikyu.json or RIKYU_HOST), before considering this port done.
 """
 import argparse
@@ -103,7 +108,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--job", action="store_true",
                          help="Also submit a real 1-GPU job (nvidia-smi, 5 min wall time).")
+    parser.add_argument("--confirm-billing", action="store_true",
+                         help="Required alongside --job — RIKYU compute is billed with no usage limit.")
     args = parser.parse_args()
+
+    if args.job and not args.confirm_billing:
+        print("Refusing to submit: --job was given without --confirm-billing.\n"
+              "RIKYU compute is billed to the project with no usage limit configured, "
+              "so submitting a job here needs explicit confirmation.\n"
+              "Re-run with: python tests/smoke.py --job --confirm-billing",
+              file=sys.stderr)
+        sys.exit(1)
 
     asyncio.run(check_docs_server())
     asyncio.run(check_hpc_server(submit_job=args.job))
