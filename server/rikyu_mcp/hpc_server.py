@@ -84,6 +84,22 @@ def _validate_gpu_count(spec: JobSpec) -> None:
         )
 
 
+def _apply_defaults(spec: JobSpec) -> JobSpec:
+    if not spec.attributes.queue_name:
+        spec.attributes.queue_name = "gpu"
+    _validate_gpu_count(spec)
+    return spec
+
+
+@mcp.tool()
+def render_job_script(spec: JobSpec) -> str:
+    """Render the sbatch script for a JobSpec *without* submitting it, with
+    RIKYU defaults applied. Use this to show the user exactly what will run
+    before calling submit_job (the "show before you run" rule) — extension,
+    no IRI counterpart."""
+    return compute.render_script(_apply_defaults(spec))
+
+
 @mcp.tool()
 def submit_job(spec: JobSpec) -> dict:
     """Submit a job to RIKYU's Slurm scheduler. Show the user the spec
@@ -91,10 +107,7 @@ def submit_job(spec: JobSpec) -> dict:
     run_command_on_cluster's rule below). If spec.attributes.queue_name is
     left blank, it defaults to RIKYU's only partition, "gpu". (IRI: POST /compute/job)
     """
-    if not spec.attributes.queue_name:
-        spec.attributes.queue_name = "gpu"
-    _validate_gpu_count(spec)
-    return compute.submit(spec)
+    return compute.submit(_apply_defaults(spec))
 
 
 @mcp.tool()

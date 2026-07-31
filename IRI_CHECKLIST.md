@@ -46,6 +46,7 @@ same way it would over plain SSH).
 |---|---|
 | `run_command_on_cluster` | Arbitrary login-node command, for anything the structured tools above don't cover (e.g. `sinfo`, `spack find -x`, `id` to find a group name). Documented as "show before you run," same as `submit_job`. |
 | `get_drained_nodes` | Nodes currently drained/down and why, via `sinfo -R` (`hpc_agent_core`'s `SlurmBackend.get_drained_nodes()`). Directly useful for "why won't my job start" triage alongside `get_resources`. |
+| `render_job_script` | Preview the rendered sbatch script (with RIKYU defaults applied) before submitting — supports the "show before you run" rule, same as `submit_job`. Was missing from this port; added after being flagged by live testing. |
 
 ## Not implemented
 

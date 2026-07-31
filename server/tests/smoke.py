@@ -42,7 +42,8 @@ from hpc_agent_core.testing import Summary, call, confirm_billing_gate, job_name
 
 _REQUIRED_HPC_TOOLS = {
     "get_facility", "get_resources", "get_resource", "get_drained_nodes",
-    "submit_job", "get_job_status", "get_job_statuses", "cancel_job", "update_job",
+    "render_job_script", "submit_job", "get_job_status", "get_job_statuses",
+    "cancel_job", "update_job",
     "run_command_on_cluster",
     "fs_ls", "fs_stat", "fs_view", "fs_head", "fs_tail", "fs_mkdir",
     "fs_upload", "fs_download", "fs_checksum", "fs_cp", "fs_mv",

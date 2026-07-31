@@ -68,6 +68,18 @@ auto-refetches a live site.
     so 313 doesn't look like a bug when you first see it. Revisit
     `rikyu_config.json`'s documented count once RIKYU is in full
     production. (Observed via Eliott Jacopin's PR #4 live verification.)
+  - **`srun` cannot launch MPI ranks — use `mpirun` instead**, verified
+    live 2026-07-31: `srun ./mpi_program` aborts in `MPI_Init` with an
+    internal-runtime failure, despite `srun --mpi=list` listing `pmi2`/
+    `pmix` plugins (root cause not further diagnosed — plugin availability
+    alone doesn't mean the launch path works). `mpirun` (from `nvhpc-hpcx`
+    or `nvhpc-hpcx-cuda13`) works correctly single- and multi-node,
+    confirmed with a real 2-node/8-rank job — the only requirement is
+    setting `resources.processes_per_node` to the rank count, or `mpirun`
+    fails with "not enough slots" (Slurm otherwise only allocates 1 task
+    slot). Documented in the submitting-jobs skill and `rikyu_guide.md`;
+    the prior skill example used `srun`, which would have failed for any
+    real MPI job.
 - **GPU counts**: only 1, 2, 3, 4, 8, 12, 16 are accepted; `hpc_server.py`'s
   `submit_job` validates this before submission (`_validate_gpu_count`) so
   a bad count fails clearly instead of behaving unpredictably in Slurm.
