@@ -39,13 +39,32 @@ your Phase 1 access lapses.
 
 ## Slurm
 
-RIKYU has exactly one partition, `gpu`, covering all 400 nodes — there's no
-separate CPU-only or debug partition to choose between. Request GPUs with
+`gpu` is the default partition and the only one to submit to — there's no
+separate CPU-only or debug partition to choose between. Two small
+InfiniBand-variant partitions (`gpu-ib200` and `gpu-ib400`, ten nodes each)
+also exist but have been `down` whenever checked; ignore them unless a site
+announcement says otherwise. `gpu` does not hold all 400 installed nodes —
+it was 322 at last check, with the rest down, drained or in the variant
+partitions — so read the count from `sinfo`/`get_resources` rather than
+assuming a number. Request GPUs with
 `--gpus=N`, not `--gres=gpu:N`; RIKYU uses the job-total-count dialect. You
 do not need to (and normally should not) set `--nodes` yourself — Slurm
 derives the node count from the GPU count automatically, at 4 GPUs per
-node. `--account` is not part of the job scripts this system expects,
-unlike some other RIKEN machines — leave it out unless told otherwise.
+node.
+
+**Set `--account` (`-A`) on every job.** If you belong to more than one
+project, Slurm refuses the job outright:
+
+    sbatch: error: [AI4S] You belong to multiple projects, so the project
+    to be charged must be specified explicitly. Add the following line to
+    your job script:
+    sbatch: error:   #SBATCH --account=<project> (or -A <project>)
+
+This became mandatory for multi-project users on 2026-07-11. It stays
+optional if you belong to exactly one project — Slurm picks that one — but
+setting it explicitly is always correct, so do that rather than working out
+which case you are in. Your project names are the `rkp*` entries in
+`id -Gn`, and `get_projects` lists them.
 
 Standard `sbatch`/`squeue`/`salloc`/`srun`/`scancel`/`sinfo` all work as
 expected. Slurm accounting (`sacct`) is available on RIKYU, so job history

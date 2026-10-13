@@ -61,3 +61,18 @@ bootstrap.)
 - Don't run computation on the login node — submit a job.
 - Don't guess Rikyu-specific details — use `search_docs` from the rikyu-docs server. Note it searches a bundled guide, not a live site — never tell the user to go check a URL for more detail.
 - Don't `cancel_job` without confirming with the user.
+
+## Always set the project account
+
+Put `"account": "<project>"` in `attributes` on every job. RIKYU rejects a
+job from a multi-project user that omits it:
+
+> `[AI4S] You belong to multiple projects, so the project to be charged
+> must be specified explicitly.`
+
+It is optional only for someone in exactly one project, and harmless there,
+so set it unconditionally instead of deciding. `get_projects(facility="rikyu")`
+lists the user's projects (the `rkp*` groups); if they have several and
+haven't said which to charge, ask rather than picking one — it is a billing
+decision at 300 yen/GPU-hour. `RIKYU_ACCOUNT` or `defaults.account` in
+`~/.hpc-agent/rikyu.json` supplies it automatically when set.

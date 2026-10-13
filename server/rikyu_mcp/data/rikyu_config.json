@@ -13,7 +13,7 @@
     "partitions": [
       {
         "name": "gpu",
-        "description": "The only partition; all 400 GB200 NVL4 compute nodes",
+        "description": "The default partition and the only one to submit to; GB200 NVL4 compute nodes. Node membership is smaller than the 400 installed (322 at last check) - query sinfo/get_resources rather than relying on this number. Two ten-node InfiniBand-variant partitions, gpu-ib200 and gpu-ib400, also exist but have been down whenever checked.",
         "nodes": 400,
         "max_wall_time": "4-00:00:00"
       }
@@ -22,7 +22,9 @@
     "gpu_request_style": "gpus_total",
     "gpu_flag": "--gpus=N",
     "nodes_derived_from_gpu_count": true,
-    "account_required": false
+    "account_required": true,
+    "account_flag": "--account=<project> (or -A <project>)",
+    "account_note": "Mandatory since 2026-07-11 for users in more than one project: sbatch rejects the job with '[AI4S] You belong to multiple projects, so the project to be charged must be specified explicitly.' Strictly optional for single-project users, but always setting it is correct and avoids having to determine which case applies. Project names are the rkp* entries in `id -Gn`; get_projects lists them."
   },
   "compute_node": {
     "model": "NVIDIA GB200 NVL4",
